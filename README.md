@@ -1,1 +1,1 @@
-# ae_protein
+# protein autoencoder
