@@ -1,11 +1,12 @@
 import sys
 import argparse
 import os
-import urllib
+import urllib.request
+import json
 
 
 from gemmi import cif #reading cif files
-from Bio.PDB.MMCIF2Dict import MMCIF2Dict
+#from Bio.PDB.MMCIF2Dict import MMCIF2Dict
 
 parser = argparse.ArgumentParser(description='choosing complete pdb')
 parser.add_argument('--file', required=True, type=str,
@@ -32,14 +33,14 @@ lines = lines[1:]
 
 #writing a new file with filtered pdbs
 # newf = open(arg.name, 'w')
-updated= []
+updated = []
 
 #for i in range(len(lines)):
 	#extracting the pdb ids and the chain id
 for line in lines:
 	pdbid = line[:4]
 	chain = line[4]
-	print(pdbid, chain)
+	#print(pdbid, chain)
 	if len(updated) <= arg.n-1:
 		#extracting file info online
 		with urllib.request.urlopen(f'https://files.rcsb.org/header/{pdbid}.cif') as c:
@@ -55,7 +56,7 @@ for line in lines:
 
 				atom_chain = [i for i in block.find_loop( '_pdbx_unobs_or_zero_occ_atoms.auth_asym_id')]
 				ac = [element for element in block.find_loop('_pdbx_unobs_or_zero_occ_atoms.label_atom_id')]
-				print(atom_chain, ac)
+				#print(atom_chain, ac)
 				for a, r in zip(atom_chain, ac):
 					if r == 'CA' and r == chain:
 						continue
@@ -83,6 +84,7 @@ for line in lines:
 				# for ac in atom_chain:
 				# 	ac = [element for element in block.find_loop('_pdbx_unobs_or_zero_occ_atoms.label_atom_id')]
 				#print(i)
-print(updated)
-print(len(updated))
+#print(updated)
+print(json.dumps(updated))
+#print(len(updated))
 	#sys.exit()
