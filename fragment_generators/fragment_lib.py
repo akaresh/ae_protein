@@ -125,76 +125,76 @@ def res_cen(dict_positions):
 	#print(dict_positions)
 	total_mass = 0
 	mx = 0
-    my = 0
-    mz = 0
-    for keys, values in dict_positions.items():
-        total_mass += (Formula(values[-1]).mass)
-        mx += ((Formula(values[-1]).mass)*values[0])
-        my += ((Formula(values[-1]).mass)*values[1])
-        mz += ((Formula(values[-1]).mass)*values[2])
-    return [mx/total_mass, my/total_mass, mz/total_mass]
+	my = 0
+	mz = 0
+	for keys, values in dict_positions.items():
+		total_mass += (Formula(values[-1]).mass)
+		mx += ((Formula(values[-1]).mass)*values[0])
+		my += ((Formula(values[-1]).mass)*values[1])
+		mz += ((Formula(values[-1]).mass)*values[2])
+	return [mx/total_mass, my/total_mass, mz/total_mass]
 
 def make_bbcen(file, size):
 	master = mdata(file)
 	backbone = ['N', 'CA', 'C', 'O']
-    new3 = []
-    for idx, row in master.iterrows():
-        if row.Atom != 'N': continue
+	new3 = []
+	for idx, row in master.iterrows():
+		if row.Atom != 'N': continue
 
-        dic = {'pdb_id':row.Molecule_Name, 'model_id':row.Model_ID,
-            'chain_id':row.Chain_ID, 'fragment_ids':None,
-            'fragment_seq':None, 'xyz_set':None, 'atoms_list':None,
-            'fragment_type':'bb+cen'}
-        resid = row.Index
-        chid  = row.Chain_ID
-        fidxs = []
-        pos = []
-        frag_seq = ''
-        atoms = []
+		dic = {'pdb_id':row.Molecule_Name, 'model_id':row.Model_ID,
+			'chain_id':row.Chain_ID, 'fragment_ids':None,
+			'fragment_seq':None, 'xyz_set':None, 'atoms_list':None,
+			'fragment_type':'bb+cen'}
+		resid = row.Index
+		chid  = row.Chain_ID
+		fidxs = []
+		pos = []
+		frag_seq = ''
+		atoms = []
 
-        skip = False
+		skip = False
 
-        for i in range(0,size):
-            df_row = master[master['Index'] == (resid + i)]
-            df_row = df_row[df_row['Chain_ID'] == chid]
+		for i in range(0,size):
+			df_row = master[master['Index'] == (resid + i)]
+			df_row = df_row[df_row['Chain_ID'] == chid]
 
-            if df_row.empty:
-                skip = True
-                break
-            fidxs.append(df_row['Index'].values[0])
-            frag_seq += str(df_row['Residue'].values[0])
+			if df_row.empty:
+				skip = True
+				break
+			fidxs.append(df_row['Index'].values[0])
+			frag_seq += str(df_row['Residue'].values[0])
 
-            res_atoms_pos = {}
-            atoms_sublist = []
-            for sub_id, sub_row in df_row.iterrows():
-                #print(sub_row.Atom)
-                if sub_row.Atom in backbone:
-                    atoms_sublist.append(sub_row.Atom)
-                    pos.append([sub_row.X, sub_row.Y, sub_row.Z])
-                else:
-                    if sub_row.Atom in res_atoms_pos.keys():
-                        raise ValueError('Atom Duplication')
-                    res_atoms_pos[sub_row.Atom] = [sub_row.X, sub_row.Y, sub_row.Z, sub_row.Type]
-            atoms_sublist.append('Centroid')
-            atoms.append(atoms_sublist)
+			res_atoms_pos = {}
+			atoms_sublist = []
+			for sub_id, sub_row in df_row.iterrows():
+				#print(sub_row.Atom)
+				if sub_row.Atom in backbone:
+					atoms_sublist.append(sub_row.Atom)
+					pos.append([sub_row.X, sub_row.Y, sub_row.Z])
+				else:
+					if sub_row.Atom in res_atoms_pos.keys():
+						raise ValueError('Atom Duplication')
+					res_atoms_pos[sub_row.Atom] = [sub_row.X, sub_row.Y, sub_row.Z, sub_row.Type]
+			atoms_sublist.append('Centroid')
+			atoms.append(atoms_sublist)
 
-            if len(res_atoms_pos) > 0:
-                #print(res_atoms_pos)
-                pos.append(res_cen(res_atoms_pos))
-                #print(res_cen(res_atoms_pos))
-            else:
-                #print('glycine') = glycine extention
-                pass
+			if len(res_atoms_pos) > 0:
+				#print(res_atoms_pos)
+				pos.append(res_cen(res_atoms_pos))
+				#print(res_cen(res_atoms_pos))
+			else:
+				#print('glycine') = glycine extention
+				pass
 
 
-        if skip: continue
+		if skip: continue
 
-        dic['fragment_ids'] = fidxs
-        dic['fragment_seq'] = frag_seq
-        dic['xyz_set'] = pos
-        dic['atoms_list'] = atoms
-        new3.append(dic)
+		dic['fragment_ids'] = fidxs
+		dic['fragment_seq'] = frag_seq
+		dic['xyz_set'] = pos
+		dic['atoms_list'] = atoms
+		new3.append(dic)
 
-    return (new3)
+	return (new3)
 
 # a = (make_bbcen(df, 4))
