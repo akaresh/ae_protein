@@ -3,7 +3,7 @@
 import argparse
 import sys
 
-from data_collection_library import make_CAframe, make_bbframe, make_bbcen, make_bbsc
+from fragment_lib import make_CAframe, make_bbframe, make_bbcen, make_bbsc
 
 parser = argparse.ArgumentParser(description='making fragments')
 parser.add_argument('--file', required=False, type=str,

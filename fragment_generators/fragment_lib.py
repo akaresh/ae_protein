@@ -8,7 +8,7 @@ from molmass import Formula
 parser = mmcifparser()
 aa_dict = (conv.protein_letters_3to1_extended)
 
-def mdata(file)
+def mdata(file):
 
 	xyz  = parser.get_structure(f'{file[:4]}', 'file')
 
@@ -122,9 +122,9 @@ def make_bbframe(file, size):
 # print(new1)
 
 def res_cen(dict_positions):
-    #print(dict_positions)
-    total_mass = 0
-    mx = 0
+	#print(dict_positions)
+	total_mass = 0
+	mx = 0
     my = 0
     mz = 0
     for keys, values in dict_positions.items():
@@ -136,7 +136,7 @@ def res_cen(dict_positions):
 
 def make_bbcen(file, size):
 	master = mdata(file)
-    backbone = ['N', 'CA', 'C', 'O']
+	backbone = ['N', 'CA', 'C', 'O']
     new3 = []
     for idx, row in master.iterrows():
         if row.Atom != 'N': continue
