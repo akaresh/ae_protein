@@ -83,7 +83,12 @@ def make_CAframe(atomdf, size):
 		dic['fragment_seq'] = frag_seq
 		dic['xyz_set'] = pos
 		new.append(dic)
-	return new
+	
+	df = pd.DataFrame(new, columns =['index', 'pdb_id', 'model_id',
+									 'chain_id', 'fragment_ids',
+									 'fragment_seq', 'xyz_set',
+									 'fragment_type'])
+	return df
 #new = make_CAframe(df, k)
 
 
@@ -124,8 +129,12 @@ def make_bbframe(atomdf, size):
 		dic['fragment_seq'] = frag_seq
 		dic['xyz_set'] = pos
 		new.append(dic)
-
-	return new
+	
+	df = pd.DataFrame(new, columns =['index', 'pdb_id','model_id',
+									 'chain_id', 'fragment_ids',
+									 'fragment_seq', 'xyz_set',
+									 'fragment_type'])	
+	return df
 
 # new1 = make_bbframe(df, 5)
 # print(new1)
@@ -202,8 +211,12 @@ def make_bbcen(atomdf, size):
 		dic['xyz_set'] = pos
 		dic['atoms_list'] = atoms
 		new3.append(dic)
-
-	return (new3)
+	
+	df = pd.DataFrame(new, columns =['index', 'pdb_id', 'model_id',
+									 'chain_id', 'fragment_ids',
+									 'fragment_seq', 'xyz_set',
+									 'fragment_type', 'atoms_list'])	
+	return df
 
 # a = (make_bbcen(df, 4))
 
@@ -214,7 +227,3 @@ def make_fragment_frame(atomdf, size, ftype=None):
 	elif ftype == 'bb':    return make_bbframe(atomdf, size)
 	elif ftype == 'bbcen': return make_bbcen(atomdf, size)
 	elif ftype == 'bbsc':  return make_bbsc(atomdf, size)
-
-
-
-
