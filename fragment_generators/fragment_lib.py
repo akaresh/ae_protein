@@ -74,7 +74,9 @@ def make_CAframe(atomdf, size):
 				skip = True
 				break
 			fidxs.append(df_row['Index'].values[0])
-			pos.append([df_row.X.values[0], df_row.Y.values[0], df_row.Z.values[0]])
+			pos.append([df_row.X.values[0], 
+						df_row.Y.values[0], 
+						df_row.Z.values[0]])
 			frag_seq += str(df_row['Residue'].values[0])
 
 		if skip: continue
@@ -84,7 +86,7 @@ def make_CAframe(atomdf, size):
 		dic['xyz_set'] = pos
 		new.append(dic)
 	
-	df = pd.DataFrame(new, columns =['index', 'pdb_id', 'model_id',
+	df = pd.DataFrame(new, columns =['pdb_id', 'model_id',
 									 'chain_id', 'fragment_ids',
 									 'fragment_seq', 'xyz_set',
 									 'fragment_type'])
@@ -121,7 +123,9 @@ def make_bbframe(atomdf, size):
 
 			for b in backbone:
 				df_row1 = df_row[df_row['Atom'] == b]
-				pos.append([df_row1.X.values[0], df_row1.Y.values[0], df_row1.Z.values[0]])
+				pos.append([df_row1.X.values[0],
+							df_row1.Y.values[0],
+							df_row1.Z.values[0]])
 
 		if skip: continue
 
@@ -130,7 +134,7 @@ def make_bbframe(atomdf, size):
 		dic['xyz_set'] = pos
 		new.append(dic)
 	
-	df = pd.DataFrame(new, columns =['index', 'pdb_id','model_id',
+	df = pd.DataFrame(new, columns =['pdb_id','model_id',
 									 'chain_id', 'fragment_ids',
 									 'fragment_seq', 'xyz_set',
 									 'fragment_type'])	
@@ -191,7 +195,10 @@ def make_bbcen(atomdf, size):
 				else:
 					if sub_row.Atom in res_atoms_pos.keys():
 						raise ValueError('Atom Duplication')
-					res_atoms_pos[sub_row.Atom] = [sub_row.X, sub_row.Y, sub_row.Z, sub_row.Type]
+					res_atoms_pos[sub_row.Atom] = [sub_row.X,
+												   sub_row.Y,
+												   sub_row.Z,
+												   sub_row.Type]
 			atoms_sublist.append('Centroid')
 			atoms.append(atoms_sublist)
 
@@ -203,7 +210,6 @@ def make_bbcen(atomdf, size):
 				#print('glycine') = glycine extention
 				pass
 
-
 		if skip: continue
 
 		dic['fragment_ids'] = fidxs
@@ -212,7 +218,7 @@ def make_bbcen(atomdf, size):
 		dic['atoms_list'] = atoms
 		new3.append(dic)
 	
-	df = pd.DataFrame(new, columns =['index', 'pdb_id', 'model_id',
+	df = pd.DataFrame(new, columns =['pdb_id', 'model_id',
 									 'chain_id', 'fragment_ids',
 									 'fragment_seq', 'xyz_set',
 									 'fragment_type', 'atoms_list'])	
