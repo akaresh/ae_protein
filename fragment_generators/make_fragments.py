@@ -1,34 +1,79 @@
 #!/usr/bin/python3 
 
 import argparse
+import json
+import pandas as pd
 import sys
 
-from fragment_lib import make_CAframe, make_bbframe, make_bbcen, make_bbsc
+from fragment_lib import make_atom_frame, make_fragment_frame
+
+#from fragment_lib import make_CAframe, make_bbframe, make_bbcen, make_bbsc
 
 parser = argparse.ArgumentParser(description='making fragments')
 parser.add_argument('--file', required=False, type=str,
-	metavar='<path>', help='path to cif files')
+	metavar='<path>', help='path to cif file')
 parser.add_argument('--cifs', '-c', required=False, type=str,
 	metavar='<path>', help='path to file containing set of cifs to build')
+parser.add_argument('--atoms', '-a', required=False, type=str,
+	metavar='<path>', help='path to prebuilt atom data frame')
 parser.add_argument('--size', required=False, type=int, default = 3,
 	metavar='<int>', help='length of fragments')
-parser.add_argument('--t', required=False, type=str, default='CA',
-	metavar='<int>', help='type of fragments: CA, bbframe, bbcen, bbsc')
+parser.add_argument('--type', required=False, type=str, default='CA',
+	metavar='<int>', help='type of fragments: CA, bb, bbcen, bbsc')
+parser.add_argument('--outatoms', '-u', required=False, type=str, 
+	metavar='<path>', help='save location for atom frame')
+parser.add_argument('--outfrag', '-o', required=False, type=str, 
+	metavar='<path>', help='save location for fragment frame')
 
 arg = parser.parse_args()
 
-# def make_fragment_frame(file, size, t):
-# 	if t == 'CA':
-# 		return make_CAframe(file, size)
-# 	elif t == 'bb':
-# 		return make_bbframe(file, size)
-# 	elif t == 'bb+cen':
-# 		return make_bbcen(file, size) # separate function to calculate a centroid
-# 	elif t == 'bb+sc':
-# 		return make_bbsc(file, size) # function to calculate cb-extended for glycine
-# 	else:
-# 		raise Exception(f'un-suppported fragment tyoe: {t}')
-# 		return None
-# 
-# 
-# make_fragment_frame(arg.file, arg.size, arg.t)
+assert(arg.type == 'CA' or arg.type == 'bb' or arg.type == 'bbcen'
+	   or arg.type == 'bbsc')
+
+if arg.file:
+	if arg.atoms: atm_frame = pd.read_pickle(arg.atoms, compression='xz')
+	else:         atm_frame = make_atom_frame([arg.file])
+	
+	frag_df = make_fragment_frame(atm_frame, arg.size, ftype=arg.type)
+	
+	print(frag_df.head(3))
+	print(frag_df.columns)
+	print(frag_df.shape)
+	
+	if arg.outfrag: frag_df.to_pickle(arg.outfrag, compression='xz')
+	if ~arg.atoms:
+		if arg.outatoms: atm_frame.to_pickle(arg.outatoms, compression='xz')
+	
+elif arg.cifs:
+	with open(arg.cifs, 'r') as fp:
+		cifs = json.load(fp)
+	fp.close()
+	
+	if arg.atoms: atm_frame = pd.read_pickle(arg.atoms, compression='xz')
+	else:
+		with open(arg.cifs, 'r') as fp:
+			cifs = json.load(fp)
+		fp.close()
+		atm_frame = make_atom_frame(cifs)
+	
+	print('finished atom frame')
+	
+	frag_df = make_fragment_frame(atm_frame, arg.size, ftype=arg.type)
+	
+	print(frag_df.head(3))
+	print(frag_df.columns)
+	print(frag_df.shape)
+	
+	if arg.outfrag: frag_df.to_pickle(arg.outfrag, compression='xz')
+	if ~arg.atoms:
+		if arg.outatoms: atm_frame.to_pickle(arg.outatoms, compression='xz')
+	
+
+"""
+4. then actually make the fragment frame
+5. size = 7
+6. 4 fragment methods, 3, 5, 7, 9, 11, 15, 21
+	- 28 
+
+
+"""

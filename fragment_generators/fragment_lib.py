@@ -8,44 +8,54 @@ from molmass import Formula
 parser = mmcifparser()
 aa_dict = (conv.protein_letters_3to1_extended)
 
-def mdata(file):
-
-	xyz  = parser.get_structure(f'{file[:4]}', 'file')
-
+def make_atom_frame(files):
+	assert(type(files) == list)
+	
 	seq_data = []
-	index = 0
-	for i, m in enumerate(xyz.get_models()):
-		for j, c in enumerate(m.get_chains()):
-			for r in c.get_residues():
-				index += 1
-				res = r.get_resname()
-				res = res.capitalize()
-
-				#skipping non-residues
-				if res not in aa_dict.keys():
-					continue
-
-				for atom in r.get_atoms():
-
-					seq_data.append((index, atom.get_full_id()[0], atom.get_full_id()[1], atom.get_full_id()[2],
-									 atom.get_full_id()[3][1], aa_dict.get(res), atom.get_id(), atom.element,
-									 atom.get_coord()[0], atom.get_coord()[1], atom.get_coord()[2]))
-
-	df = pd.DataFrame(seq_data, columns =['Index', 'Molecule_Name','Model_ID', 'Chain_ID', 'Residue_ID',
-										  'Residue', 'Atom', 'Type', 'X', 'Y', 'Z'])
-	# pd.set_option('max_columns', None)
-	# print(df.head(10))
+	
+	for cif in files:
+		psplit = cif.split('/')
+		xyz  = parser.get_structure(psplit[-1][:-4], cif)
+		index = 0
+		for i, m in enumerate(xyz.get_models()):
+			for j, c in enumerate(m.get_chains()):
+				for r in c.get_residues():
+					index += 1
+					res = r.get_resname()
+					res = res.capitalize()
+					
+					#skipping non-residues
+					if res not in aa_dict.keys(): continue
+					
+					for atom in r.get_atoms():
+						seq_data.append((index, 
+										 atom.get_full_id()[0], 
+										 atom.get_full_id()[1], 
+										 atom.get_full_id()[2],
+									 	 atom.get_full_id()[3][1],
+									 	 aa_dict.get(res),
+									 	 atom.get_id(),
+									 	 atom.element,
+									 	 atom.get_coord()[0], 
+									 	 atom.get_coord()[1],
+									 	 atom.get_coord()[2]))
+	
+	df = pd.DataFrame(seq_data, columns =['Index', 'Molecule_Name','Model_ID',
+										  'Chain_ID', 'Residue_ID', 'Residue',
+										  'Atom', 'Type', 'X', 'Y', 'Z'])
 	return df
 
-def make_CAframe(file, size):
-	master = mdata(file)
+def make_CAframe(atomdf, size):
 	new = []
-	for idx, row in master.iterrows():
+	for counter, (idx, row) in enumerate(atomdf.iterrows()):
+		if counter % 10000 == 0: print(counter)
 		if row.Atom != 'CA': continue
+		
 		dic = {'pdb_id':row.Molecule_Name, 'model_id':row.Model_ID,
 			'chain_id':row.Chain_ID, 'fragment_ids':None,
 			'fragment_seq':None, 'xyz_set':None, 'fragment_type':'CA'}
-
+		
+		pdbid = row.Molecule_Name
 		resid = row.Index
 		chid  = row.Chain_ID
 		fidxs = [resid]
@@ -55,8 +65,8 @@ def make_CAframe(file, size):
 		skip = False
 
 		for i in range(1,size):
-
-			df_row = master[master['Index'] == (fidxs[i-1]+1)]
+			df_row = atomdf[atomdf['Molecule_Name'] == pdbid]
+			df_row = df_row[df_row['Index'] == (fidxs[i-1]+1)]
 			df_row = df_row[df_row['Chain_ID'] == chid]
 			df_row = df_row[df_row['Atom'] == 'CA']
 
@@ -77,12 +87,11 @@ def make_CAframe(file, size):
 #new = make_CAframe(df, k)
 
 
-def make_bbframe(file, size):
-	master = mdata(file)
+def make_bbframe(atomdf, size):
 	new = []
 	#size = 3
 	backbone = ['N', 'CA', 'C', 'O']
-	for idx, row in master.iterrows():
+	for idx, row in atomdf.iterrows():
 		if row.Atom != 'N': continue
 
 		dic = {'pdb_id':row.Molecule_Name, 'model_id':row.Model_ID,
@@ -96,7 +105,7 @@ def make_bbframe(file, size):
 
 		skip = False
 		for i in range(0,size):
-			df_row = master[master['Index'] == (resid + i)]
+			df_row = atomdf[atomdf['Index'] == (resid + i)]
 			df_row = df_row[df_row['Chain_ID'] == chid]
 
 			if df_row.empty:
@@ -134,11 +143,10 @@ def res_cen(dict_positions):
 		mz += ((Formula(values[-1]).mass)*values[2])
 	return [mx/total_mass, my/total_mass, mz/total_mass]
 
-def make_bbcen(file, size):
-	master = mdata(file)
+def make_bbcen(atomdf, size):
 	backbone = ['N', 'CA', 'C', 'O']
 	new3 = []
-	for idx, row in master.iterrows():
+	for idx, row in atomdf.iterrows():
 		if row.Atom != 'N': continue
 
 		dic = {'pdb_id':row.Molecule_Name, 'model_id':row.Model_ID,
@@ -155,7 +163,7 @@ def make_bbcen(file, size):
 		skip = False
 
 		for i in range(0,size):
-			df_row = master[master['Index'] == (resid + i)]
+			df_row = atomdf[atomdf['Index'] == (resid + i)]
 			df_row = df_row[df_row['Chain_ID'] == chid]
 
 			if df_row.empty:
@@ -198,3 +206,15 @@ def make_bbcen(file, size):
 	return (new3)
 
 # a = (make_bbcen(df, 4))
+
+def make_fragment_frame(atomdf, size, ftype=None):
+	assert(ftype != None)
+	
+	if   ftype == 'CA':    return make_CAframe(atomdf, size)
+	elif ftype == 'bb':    return make_bbframe(atomdf, size)
+	elif ftype == 'bbcen': return make_bbcen(atomdf, size)
+	elif ftype == 'bbsc':  return make_bbsc(atomdf, size)
+
+
+
+
