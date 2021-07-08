@@ -14,15 +14,15 @@ parser.add_argument('--file', required=False, type=str,
 	metavar='<path>', help='path to cif file')
 parser.add_argument('--cifs', '-c', required=False, type=str,
 	metavar='<path>', help='path to file containing set of cifs to build')
-parser.add_argument('--atoms', '-a', required=False, type=str,
+parser.add_argument('--atoms', '-a', required=False, type=str, default=None,
 	metavar='<path>', help='path to prebuilt atom data frame')
 parser.add_argument('--size', required=False, type=int, default = 3,
 	metavar='<int>', help='length of fragments')
 parser.add_argument('--type', required=False, type=str, default='CA',
 	metavar='<int>', help='type of fragments: CA, bb, bbcen, bbsc')
-parser.add_argument('--outatoms', '-u', required=False, type=str, 
+parser.add_argument('--outatoms', '-u', required=False, type=str, default=None, 
 	metavar='<path>', help='save location for atom frame')
-parser.add_argument('--outfrag', '-o', required=False, type=str, 
+parser.add_argument('--outfrag', '-o', required=False, type=str, default=None,
 	metavar='<path>', help='save location for fragment frame')
 
 arg = parser.parse_args()
@@ -41,7 +41,7 @@ if arg.file:
 	print(frag_df.shape)
 	
 	if arg.outfrag: frag_df.to_pickle(arg.outfrag, compression='xz')
-	if ~arg.atoms:
+	if arg.atoms == None:
 		if arg.outatoms: atm_frame.to_pickle(arg.outatoms, compression='xz')
 	
 elif arg.cifs:
@@ -65,7 +65,7 @@ elif arg.cifs:
 	print(frag_df.shape)
 	
 	if arg.outfrag: frag_df.to_pickle(arg.outfrag, compression='xz')
-	if ~arg.atoms:
+	if arg.atoms == None:
 		if arg.outatoms: atm_frame.to_pickle(arg.outatoms, compression='xz')
 	
 
