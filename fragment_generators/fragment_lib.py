@@ -4,41 +4,50 @@ import pandas as pd
 import Bio.Data.IUPACData as conv
 import Bio.PDB.MMCIFParser as mmcifparser
 from molmass import Formula
+#import Bio.PDB.internal_coords as internal_coords
 
 parser = mmcifparser()
 aa_dict = (conv.protein_letters_3to1_extended)
 
-def make_atom_frame(files):
+def make_atom_frame(files, ftype = None):
 	assert(type(files) == list)
-	
+	#assert(ftype != None)
+
 	seq_data = []
-	
+
 	for cif in files:
 		psplit = cif.split('/')
 		xyz  = parser.get_structure(psplit[-1][:-4], cif)
 		index = 0
+
+		# if ftype == 'bbcen' or ftype == 'bbsc':
+		# 	# build C-beta's for glycine
+		# 	internal_coords.IC_Residue.gly_Cbeta = True
+		# 	#xyz.internal_to_atom_coordinates()
+		# 	xyz.atom_to_internal_coordinates()
+
 		for i, m in enumerate(xyz.get_models()):
 			for j, c in enumerate(m.get_chains()):
 				for r in c.get_residues():
 					index += 1
 					res = r.get_resname()
 					res = res.capitalize()
-					
+
 					#skipping non-residues
 					if res not in aa_dict.keys(): continue
-					
+
 					for atom in r.get_atoms():
-						seq_data.append((index, 
-										 atom.get_full_id()[0], 
-										 atom.get_full_id()[1], 
+						seq_data.append((index,
+										 atom.get_full_id()[0],
+										 atom.get_full_id()[1],
 										 atom.get_full_id()[2],
-									 	 atom.get_full_id()[3][1],
-									 	 aa_dict.get(res),
-									 	 atom.get_id(),
-									 	 atom.element,
-									 	 atom.get_coord()[0], 
-									 	 atom.get_coord()[1],
-									 	 atom.get_coord()[2]))
+										 atom.get_full_id()[3][1],
+										 aa_dict.get(res),
+										 atom.get_id(),
+										 atom.element,
+										 atom.get_coord()[0],
+										 atom.get_coord()[1],
+										 atom.get_coord()[2]))
 	
 	df = pd.DataFrame(seq_data, columns =['Index', 'Molecule_Name','Model_ID',
 										  'Chain_ID', 'Residue_ID', 'Residue',
@@ -158,7 +167,7 @@ def res_cen(dict_positions):
 
 def make_bbcen(atomdf, size):
 	backbone = ['N', 'CA', 'C', 'O']
-	new3 = []
+	new = []
 	for idx, row in atomdf.iterrows():
 		if row.Atom != 'N': continue
 
@@ -175,7 +184,7 @@ def make_bbcen(atomdf, size):
 
 		skip = False
 
-		for i in range(0,size):
+		for i in range(0, size):
 			df_row = atomdf[atomdf['Index'] == (resid + i)]
 			df_row = df_row[df_row['Chain_ID'] == chid]
 
@@ -188,7 +197,6 @@ def make_bbcen(atomdf, size):
 			res_atoms_pos = {}
 			atoms_sublist = []
 			for sub_id, sub_row in df_row.iterrows():
-				#print(sub_row.Atom)
 				if sub_row.Atom in backbone:
 					atoms_sublist.append(sub_row.Atom)
 					pos.append([sub_row.X, sub_row.Y, sub_row.Z])
@@ -207,6 +215,7 @@ def make_bbcen(atomdf, size):
 				pos.append(res_cen(res_atoms_pos))
 				#print(res_cen(res_atoms_pos))
 			else:
+				#print(res_cen)
 				#print('glycine') = glycine extention
 				pass
 
@@ -216,7 +225,7 @@ def make_bbcen(atomdf, size):
 		dic['fragment_seq'] = frag_seq
 		dic['xyz_set'] = pos
 		dic['atoms_list'] = atoms
-		new3.append(dic)
+		new.append(dic)
 	
 	df = pd.DataFrame(new, columns =['pdb_id', 'model_id',
 									 'chain_id', 'fragment_ids',
