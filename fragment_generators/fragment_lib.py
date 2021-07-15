@@ -21,7 +21,7 @@ def make_atom_frame(files, ftype = None):
 		index = 0
 
 		# if ftype == 'bbcen' or ftype == 'bbsc':
-		# 	# build C-beta's for glycine
+		# 	build C-beta's for glycine
 		# 	internal_coords.IC_Residue.gly_Cbeta = True
 		# 	#xyz.internal_to_atom_coordinates()
 		# 	xyz.atom_to_internal_coordinates()
