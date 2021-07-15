@@ -7,7 +7,7 @@ import argparse
 import pickle
 
 import pandas as pd
-import Bio.PDB.PDBIO as io
+from Bio.PDB.PDBIO import PDBIO
 
 # print(pd.__version__)
 # sys.exit()
@@ -26,14 +26,14 @@ assert(arg.atoms != None)
 
 atm_frame = pd.read_pickle(arg.atoms, compression='xz')
 
-# with open(arg.atoms, 'wb') as f:
-#     pickle.dump(data_frame_object, f)
-
-# print(data_frame_object)
-# sys.exit()
-
-# for idx, row in atm_frame.iterrows():
-# 	print(idx, row)
+#writing in consideration only for CA dataframe
+for idx, row in atm_frame.iterrows():
+# 	print(row['xyz_set'], len(row['xyz_set']))
+# 	print(row['fragment_seq'], len(row['fragment_seq']))
+# 	sys.exit()
+	for r, c in zip(row['fragment_seq'], row['xyz_set']):
+		print(r,c)
+	sys.exit()
 
 # Example: saving a structure
 
