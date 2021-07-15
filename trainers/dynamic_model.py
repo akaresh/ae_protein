@@ -1,9 +1,21 @@
 import torch
 from torch import nn
-from torch.autograd import Variable
-from torch.nn import functional as F
+#from torch.autograd import Variable
+#from torch.nn import functional as F
 import sys
 
+
+class DynamicAE(nn.Module):
+	def __init__(self, input_dim, hidden_dim_array, non_lin_fxn, prob):
+		#Notes:
+		'''
+		input data = dim of input layer
+		hidden_dim_layer = number of nodes in each hidden later
+		non_lin_fxn = activation function in each layer
+		prob = dropout rate??
+		
+		'''
+		pass
 
 
 
@@ -14,7 +26,7 @@ class DynamicNet(nn.Module):
 		self.input_dimension = input_dim
 		self.hid_dim = hidden_dim_array
 		self.nlfa = non_linear_function_array
-		self.p = prob
+		#self.p = prob
 		###
 
 		self.linear_functions = []
@@ -48,7 +60,11 @@ class DynamicNet(nn.Module):
 			if len(self.prob) != 0:
 				assert(type(self.prob[i]) == float)
 				assert(self.prob[i] <= 1.0)
-				out = F.dropout(out, p=self.prob[i], training = True)
+				
+				#functional dropout??? might not need it
+				#out = F.dropout(out, p=self.prob[i], training = True)
+				
+				out = dropout(out, p=self.prob[i], training = True)
 			###assert statement (sanity checks)
 			#nn.functional.dropout(inputs, p=self.p, training=True)
 
