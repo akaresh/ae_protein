@@ -5,17 +5,18 @@
 """
 
 from torch import relu
-from torch.nn import Linear, Dropout
+from torch.nn import Dropout, Linear, Module, ModuleList
 
-class SimpleAEff(nn.Module):
+class SimpleAEff(Module):
 	"""
 	Class definition for a simple autoencoder working on protein fragments.
 	Following PyTorch AutoEncoder tutorial here: https://gist.github.com/
-	AFAgarap/4f8a8d8edf352271fa06d85ba0361f26
+	AFAgarap/4f8a8d8edf352271fa06d85ba0361f26.
+	All layers are Fully Connected (FC) layers. 
 	
 	Parameters
 	----------
-	inshape: Input shape of fragment
+	inshape: Input shape of fragment data
 		Model expects input fragment is a flattened array of coordinates. 
 		inshape > 0
 	dropout: Dropout rate (optional)
@@ -24,7 +25,7 @@ class SimpleAEff(nn.Module):
 	
 	Returns
 	-------
-	AutoEncoder Model PyTorch nn.Module object
+	AutoEncoder model, PyTorch nn.Module object
 	"""
 	
 	def __init__(self,
@@ -70,5 +71,79 @@ class SimpleAEff(nn.Module):
 		
 		return reconstruted
 
-class DynamicAEff(nn.Module):
+class DynamicAEff(Module):
+	"""
+	Class definition for AutoEncoder model with dynamic number of layers and
+	units per layer. All layers are Fully Connected (FC) layers. 
+	
+	Parameters
+	----------
+	inshape: Input shape of fragment data
+		Model expects input fragment is a flattened array of coordinates. 
+		inshape > 0
+	units: list for units per layer, requred
+		list of units per layer, excluding size of input. 
+	function_list: list for non-linear functions applied at each layer, requred
+		list of PyTorch non-linear functions to be applied at each layer.
+		len(function_list) needs to each length of units list.  
+	dropouts: list of dropout probabilities per layer
+		Not required.
+		If specified, must be list of equal length to units and function_list. 
+	
+	Returns
+	-------
+	AutoEncoder model, PyTorch nn.Module object
+	"""
+	
+	def __init__(self,
+				inshape=None,
+				units=None,
+				function_list=None,
+				dropouts=None):
+		
+		assert(inshape != None and type(inshape) == int)
+		assert(units != None and type(units) == list)
+		assert(function_list != None and type(functio_list) == list)
+		
+		assert(len(units) == len(function_list))
+		
+		if dropout != None:
+			assert(type(dropout) == list)
+			assert(len(dropout) == len(units))
+			self.dropout = []
+			for dp in dropout:
+				assert(dp < 1.0 and dp > 0.0)
+				self.dropout.append(Dropout(dp))
+		else: self.dropout = [None]*len(units)
+		
+		super(DynamicAEff, self).__init__()
+		self.inshape = inshape
+		self.units = units
+		self.funs = [x() for x in function_list]
+		
+		self.linears = []
+		
+		prev = self.inshape
+		for uu in units:
+			self.linears.append(Linear(prev, uu))
+			prev = uu
+		self.linears.append(prev, self.inshape)
+		self.linears = ModuleList(self.linears)
+	
+	def forward(self, x):
+		"""
+		Perform forward pass in the dynamic AutoEncoder model.
+		Use torchinfo.summary to find detailed summary of model. 
+		"""
+		
+		out = x
+		for i in range(len(self.units)-1):
+			out = self.linears[i](out)
+			if self.dropout[i] != None: out = self.dropout[i](out)
+			out = self.funs[i](out)
+		reconstructed = self.funs[-1](out)
+		
+		return reconstructed
+
+if __name__ == '__main__':
 	pass

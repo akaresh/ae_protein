@@ -82,7 +82,6 @@ if __name__ == '__main__':
 	
 	trn = floor(df.shape[0]*arg.split)
 	
-
 # 	setting seed to just compare the results
 	seed = 42
 # 	setting the random seed from pytorch random number generators
