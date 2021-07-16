@@ -15,8 +15,8 @@
 7.  more efficient fragment cosntruction method
 8.  make method for c-beta extended
 9.  add fragment method for bb+sc
-10.  make a cif writer
-11.  improve pymol visualizationn
+10. make a cif writer
+11. improve pymol visualizationn
 	 - probably focus on getting pymol to work in a notebook
 12. visualize nn input/outputs overlays
 13. Build more informative README
@@ -25,7 +25,7 @@
 
 ## Plan Overview ##
 
-+ Fragment sizes = 3, 5, 7, 9, 11, 15, 21, 25, 30
++ Fragment sizes = 3, 4, 5, 7, 8, 9, 11, 15, 21, 25, 30
 + fragment types = ca, bb, bb+cen, bb+sc
 + selective fragment sets
 	+ all alpha
@@ -36,4 +36,5 @@
 + FC autoencoders 
 + CNN distance matrix autoencoders
 + find places of low/high quality
+	+ use lDDt?
 
