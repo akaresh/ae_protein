@@ -4,6 +4,7 @@
 
 1.  architectures.py set up
 	 - contain all PyTorch Model Class definitions we are using
+	 - UPDATE: architectures.py set up, but not tested
 2.  add CNN definitions to architectures.py
 3.  add method to create distance matrices from fragments
 	 - test simple CNN with distance matrices
