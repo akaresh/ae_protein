@@ -7,7 +7,7 @@
 from torch import relu
 from torch.nn import Dropout, Linear, Module, ModuleList
 
-class SimpleAEff(Module):
+class SimpleAEfc(Module):
 	"""
 	Class definition for a simple autoencoder working on protein fragments.
 	Following PyTorch AutoEncoder tutorial here: https://gist.github.com/
@@ -69,9 +69,9 @@ class SimpleAEff(Module):
 		
 		reconstructed = self.decoder_out(activation)
 		
-		return reconstruted
+		return reconstructed
 
-class DynamicAEff(Module):
+class DynamicAEfc(Module):
 	"""
 	Class definition for AutoEncoder model with dynamic number of layers and
 	units per layer. All layers are Fully Connected (FC) layers. 
@@ -146,4 +146,150 @@ class DynamicAEff(Module):
 		return reconstructed
 
 if __name__ == '__main__':
-	pass
+	
+	import argparse
+	from math import floor
+	import sys
+
+	import numpy as np
+	import pandas as pd
+	from scipy.spatial.distance import cdist
+	import torch
+	import torch.nn as nn
+	import torch.utils.data as data_utils
+	import torch.optim as optim
+	from torchinfo import summary
+	import torchvision
+	from training_tools import normalize_frag
+	
+	parser = argparse.ArgumentParser(description=''.join(
+									('Test training for PyTorch Model Class',
+									'definitions in this library')))
+	parser.add_argument('--df', '-d', required=True, type=str,
+		metavar='<path>', help='path to xz compressed pandas dataframe')
+	parser.add_argument('--split', '-s', required=False, type=float,
+		metavar='<float>', default=0.80, help='train/test split fraction')
+	parser.add_argument('--batchsize', '-b', required=False, type=int,
+		metavar='<int>', default=1028, help='training batchsize')
+	parser.add_argument('--epochs', '-e', required=False, type=int,
+		metavar='<int>', default=20, help='num of epochs to run')
+	parser.add_argument('--lrate', '-l', required=False, type=float,
+		metavar='<float>', default=1e-3, help='learing rate')
+	parser.add_argument('--l2', '-w', required=False, type=float,
+		metavar='<float>', default=0.0, help='l2 regularization weight')
+	parser.add_argument('--dropout', '-u', required=False, type=float,
+		metavar='<float>', default=None, help='dropout rate')
+	
+	arg = parser.parse_args()
+	
+	df = pd.read_pickle(arg.df, compression='xz').sample(frac=1.0,
+														 random_state=42)
+	
+	df['norm_frag'] = df.xyz_set.apply(normalize_frag)
+	
+	fshape = df.norm_frag[0].shape[0]
+	
+	print(df.head(3))
+	print(df.columns)
+	print(df.shape)
+	
+	trn = floor(df.shape[0]*arg.split)
+	
+	# 	setting seed to just compare the results
+	seed = 42
+	# 	setting the random seed from pytorch random number generators
+	torch.manual_seed(seed)
+	# 	enabling benchmark mode in cudnn (GPU accelerated library of primitives 
+	# 	for deep neural net)
+	torch.backends.cudnn.benchmark = False
+	# 	making experiments reproducible
+	torch.backends.cudnn.deterministic = True
+	
+	train_coords = np.array(df.norm_frag[:trn].to_list())
+	test_coords  = np.array(df.norm_frag[trn:].to_list())
+	
+	train = data_utils.TensorDataset(torch.Tensor(train_coords), 
+									 torch.Tensor(train_coords))
+	train_loader = data_utils.DataLoader(train, 
+										 batch_size=arg.batchsize,
+										 shuffle=True)
+	test = data_utils.TensorDataset(torch.Tensor(test_coords),
+									torch.Tensor(test_coords))
+	test_loader = data_utils.DataLoader(test,batch_size=1,shuffle=True)
+	
+	# 	use gpu if available
+	device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+	
+	# create a model from `AE` autoencoder class
+	# load it to the specified device, either gpu or cpu
+	model = SimpleAEfc(inshape=fshape,dropout=arg.dropout).to(device)
+	s = summary(model, input_size=(arg.batchsize,1,fshape), verbose=0)
+	#print(s)
+	
+	su = repr(s)
+	print(su.encode('utf-8').decode('latin-1'))
+	
+	# create an optimizer object
+	# Adam optimizer with learning rate 1e-3
+	optimizer = optim.Adam(model.parameters(),
+						   lr=arg.lrate,
+						   weight_decay=arg.l2)
+	
+	# mean-squared error loss
+	criterion = nn.L1Loss()
+	
+	#training autoencoder for out specified number of epochs
+	for epoch in range(arg.epochs):
+		loss = 0
+		for batch_features, _ in train_loader:
+			# reshape mini-batch data to [N, 784] matrix
+			# load it to the active device
+			batch_features = batch_features.view(-1, fshape).to(device)
+		
+			# reset the gradients back to zero
+			# PyTorch accumulates gradients on subsequent backward passes
+			optimizer.zero_grad()
+			
+			# compute reconstructions
+			outputs = model(batch_features)
+			
+			# compute training reconstruction loss
+			train_loss = criterion(outputs, batch_features)
+			
+			# compute accumulated gradients
+			train_loss.backward()
+			
+			# perform parameter update based on current gradients
+			optimizer.step()
+			
+			# add the mini-batch training loss to epoch loss
+			loss += train_loss.item()
+			
+		# compute the epoch training loss
+		loss = loss / len(train_loader)
+		
+		vloss = 0
+		for bv, _ in test_loader:
+			bv = bv.view(-1, fshape).to(device)
+			
+			outputs = model(bv)
+			test_loss = criterion(outputs, bv)
+			vloss += test_loss.item()
+		vloss = vloss / len(test_loader)
+
+		# display the epoch training loss
+		print(''.join((f"epoch : {epoch+1}/{arg.epochs}, recon loss = {loss:.8f}",
+					  f" test loss = {vloss:.8f}")))
+	
+	loss = 0
+	for batch_features, _ in test_loader:
+		batch_features = batch_features.view(-1, fshape).to(device)
+		
+		outputs = model(batch_features)
+		train_loss = criterion(outputs, batch_features)
+		
+		loss += train_loss.item()
+	
+	loss = loss / len(test_loader)
+	
+	print(f'testing loss: {loss}')
