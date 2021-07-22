@@ -31,7 +31,8 @@ if __name__ == '__main__':
 
 
 	frag_frame = pd.read_pickle(arg.atoms, compression='xz')
-
+	
+	###pdb convertor
 	#writing in consideration only for CA dataframe
 	for idx, row in frag_frame.iterrows():
 		# for i in row['xyz_set']:
@@ -56,35 +57,5 @@ if __name__ == '__main__':
 			
 			#print(pdb_to_list)
 	
-	'''
 	
-		#filepdb = open(f'f{idx}.pdb', 'w')
-			
-		# for l in pdb_to_list:
-# 			filepdb.write('   '.join(l)+'\n')
-			
-			
-			
-			 line = "%s%8.3f%8.3f%8.3f%s" % (begin,atom[2],atom[3],atom[4],end)
-				  print(line,file=f,end='')
-			else:
-			  for atom in atoms:
-				begin = "ATOM %6d %2d   R00     1    " % (atom[0],atom[1])
-				middle = "%8.3f%8.3f%8.3f" %  (atom[2],atom[3],atom[4])
-				end = "  1.00  0.00    NONE"
-				print(begin+middle+end,file=f)
-			
-			
-		# filepdb.close()
-		
-		sys.exit()
-
-	# Example: saving a structure
-
-
-	# >>> io = PDBIO()
-	# >>> io.set_structure(s)
-	# >>> io.save("out.pdb")
-
-	#https://fitzkee.chemistry.msstate.edu/sites/default/files/ch8990/pymol-tutorial.pdf
-	'''
+	
