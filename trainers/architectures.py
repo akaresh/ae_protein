@@ -6,6 +6,76 @@
 
 from torch import relu
 from torch.nn import Dropout, Linear, Module, ModuleList
+import torch.nn as nn
+
+class SimpleAEcnn(Module):
+	"""
+	Class definition for a simple CNN autoencoder working on protein fragments.
+	Following PyTorch AutoEncoder tutorial here: 
+	https://analyticsindiamag.com/how-to-implement-convolutional-autoencoder-in-pytorch-with-cuda/.
+	All layers are convolutional. 
+	
+	Parameters
+	----------
+	dropout: Dropout rate (optional)
+		Optional dropout rate, between 0 and 1. 
+		float, 0 < dropout < 1
+	
+	Returns
+	-------
+	AutoEncoder model, PyTorch nn.Module object
+	"""
+	
+	#done for CA and the fragment size of 7
+	def __init__ (self, 
+				  dropout = None):
+
+		if dropout != None:
+			assert(type(dropout) == float)
+			assert(dropout < 1.0 and dropout > 0.0)
+		
+		super().__init__()
+		
+		#structure
+		
+		#encoder
+		self.conv1 = nn.Conv2d(in_channels = 1, out_channels = 10, kernel_size = 2, 
+							   padding = 3)
+		self.conv2 = nn.Conv2d(in_channels = 10, out_channels = 5, kernel_size = 2, 
+		                       padding = 3)
+		
+		self.pool = nn.MaxPool2d(2, 2)
+		
+		#decoder
+		self.convt1 = nn.ConvTranspose2d(in_channels = 5, out_channels = 10, kernel_size = 2,
+										 stride = 1)
+		self.convt2 = nn.ConvTranspose2d(in_channels = 10, out_channels = 1, kernel_size = 2,
+										 stride = 1)
+		
+		self.dropout = Dropout(dropout) if dropout != None else None
+	
+	def forward(self, features):
+		#conv1
+		x = self.conv1(features)
+		x = relu(x)
+		x = self.pool(x)
+		if self.dropout != None: activate = self.dropout(x)
+		
+		#conv2 
+		x = self.conv2(x)
+		x = relu(x)
+		x = self.pool(x)
+		if self.dropout != None: activate = self.dropout(x)
+		
+		#convtranspose1
+		x = self.convt1(x)
+		x = relu(x)
+		
+		#convtranspose2
+		x = self.convt2(x)
+		reconstructed = relu(x)		
+		
+		return reconstructed
 
 class SimpleAEfc(Module):
 	"""
@@ -150,7 +220,7 @@ if __name__ == '__main__':
 	import argparse
 	from math import floor
 	import sys
-
+	
 	import numpy as np
 	import pandas as pd
 	from scipy.spatial.distance import cdist
@@ -160,7 +230,7 @@ if __name__ == '__main__':
 	import torch.optim as optim
 	from torchinfo import summary
 	import torchvision
-	from training_tools import normalize_frag
+	from training_tools import normalize_frag, distance_matrix
 	
 	parser = argparse.ArgumentParser(description=''.join(
 									('Test training for PyTorch Model Class',
@@ -186,6 +256,7 @@ if __name__ == '__main__':
 														 random_state=42)
 	
 	df['norm_frag'] = df.xyz_set.apply(normalize_frag)
+	df['dmatrix'] = df.xyz_set.apply(distance_matrix)
 	
 	fshape = df.norm_frag[0].shape[0]
 	
@@ -205,8 +276,8 @@ if __name__ == '__main__':
 	# 	making experiments reproducible
 	torch.backends.cudnn.deterministic = True
 	
-	train_coords = np.array(df.norm_frag[:trn].to_list())
-	test_coords  = np.array(df.norm_frag[trn:].to_list())
+	train_coords = np.array(df.dmatrix[:trn].to_list())
+	test_coords  = np.array(df.dmatrix[trn:].to_list())
 	
 	train = data_utils.TensorDataset(torch.Tensor(train_coords), 
 									 torch.Tensor(train_coords))
@@ -222,12 +293,12 @@ if __name__ == '__main__':
 	
 	# create a model from `AE` autoencoder class
 	# load it to the specified device, either gpu or cpu
-	model = SimpleAEfc(inshape=fshape,dropout=arg.dropout).to(device)
-	s = summary(model, input_size=(arg.batchsize,1,fshape), verbose=0)
+	model = SimpleAEcnn().to(device)
+	#s = summary(model, input_size=(arg.batchsize,1,fshape), verbose=0)
 	#print(s)
 	
-	su = repr(s)
-	print(su.encode('utf-8').decode('latin-1'))
+	#su = repr(s)
+	#print(su.encode('utf-8').decode('latin-1'))
 	
 	# create an optimizer object
 	# Adam optimizer with learning rate 1e-3
@@ -244,7 +315,8 @@ if __name__ == '__main__':
 		for batch_features, _ in train_loader:
 			# reshape mini-batch data to [N, 784] matrix
 			# load it to the active device
-			batch_features = batch_features.view(-1, fshape).to(device)
+			#batch_features = batch_features.view(-1, fshape).to(device)
+			batch_features = batch_features.to(device)
 		
 			# reset the gradients back to zero
 			# PyTorch accumulates gradients on subsequent backward passes
@@ -254,7 +326,10 @@ if __name__ == '__main__':
 			outputs = model(batch_features)
 			
 			# compute training reconstruction loss
+			#print(batch_features.size())
+			#print(outputs.size())
 			train_loss = criterion(outputs, batch_features)
+
 			
 			# compute accumulated gradients
 			train_loss.backward()
@@ -270,7 +345,8 @@ if __name__ == '__main__':
 		
 		vloss = 0
 		for bv, _ in test_loader:
-			bv = bv.view(-1, fshape).to(device)
+			#bv = bv.view(-1, fshape).to(device)
+			bv = bv.to(device)
 			
 			outputs = model(bv)
 			test_loss = criterion(outputs, bv)
@@ -283,7 +359,8 @@ if __name__ == '__main__':
 	
 	loss = 0
 	for batch_features, _ in test_loader:
-		batch_features = batch_features.view(-1, fshape).to(device)
+		#batch_features = batch_features.view(-1, fshape).to(device)
+		batch_features = batch_features.to(device)
 		
 		outputs = model(batch_features)
 		train_loss = criterion(outputs, batch_features)
