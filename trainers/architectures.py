@@ -173,7 +173,7 @@ class DynamicAEfc(Module):
 		
 		assert(inshape != None and type(inshape) == int)
 		assert(units != None and type(units) == list)
-		assert(function_list != None and type(functio_list) == list)
+		assert(function_list != None and type(function_list) == list)
 		
 		assert(len(units) == len(function_list))
 		
