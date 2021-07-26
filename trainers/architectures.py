@@ -276,97 +276,123 @@ if __name__ == '__main__':
 	# 	making experiments reproducible
 	torch.backends.cudnn.deterministic = True
 	
-	train_coords = np.array(df.dmatrix[:trn].to_list())
-	test_coords  = np.array(df.dmatrix[trn:].to_list())
-	
-	train = data_utils.TensorDataset(torch.Tensor(train_coords), 
-									 torch.Tensor(train_coords))
-	train_loader = data_utils.DataLoader(train, 
-										 batch_size=arg.batchsize,
-										 shuffle=True)
-	test = data_utils.TensorDataset(torch.Tensor(test_coords),
-									torch.Tensor(test_coords))
-	test_loader = data_utils.DataLoader(test,batch_size=1,shuffle=True)
-	
 	# 	use gpu if available
 	device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 	
 	# create a model from `AE` autoencoder class
 	# load it to the specified device, either gpu or cpu
-	model = SimpleAEcnn().to(device)
-	#s = summary(model, input_size=(arg.batchsize,1,fshape), verbose=0)
-	#print(s)
 	
-	#su = repr(s)
-	#print(su.encode('utf-8').decode('latin-1'))
+	model_aefc = SimpleAEfc(inshape=fshape,dropout=arg.dropout).to(device)
+	s_aefc = summary(model_aefc, input_size=(arg.batchsize,1,fshape), verbose=0)
+	su_aefc = repr(s_aefc)
+	#print(su_aefc.encode('utf-8').decode('latin-1'))
 	
-	# create an optimizer object
-	# Adam optimizer with learning rate 1e-3
-	optimizer = optim.Adam(model.parameters(),
-						   lr=arg.lrate,
-						   weight_decay=arg.l2)
+	#model_dyn_aefc = DynamicAEfc(inshape=fshape,dropout=arg.dropout).to(device)
+	#s_dyn_aefc = summary(model_dyn_aefc, inputs_size=(), verbose) 
+	#su_dyn_aefc = repr(s_dyn_aefc)
+	#print(su_dyn_aefc.encode('utf-8').decode('latin-1'))
+	
+		
+	model_aecnn = SimpleAEcnn(dropout=arg.dropout).to(device)
+	s_aecnn = summary(model_aecnn, input_size = (arg.batchsize, 1, 7, 7), verbose = 0)
+	su_aecnn = repr(s_aecnn)
+	#print(su_aecnn.encode('utf-8').decode('latin-1'))
+	
 	
 	# mean-squared error loss
 	criterion = nn.L1Loss()
 	
 	#training autoencoder for out specified number of epochs
-	for epoch in range(arg.epochs):
+	for model in [model_aefc, model_aecnn]: 
+		if model == model_aefc:
+			#printing the model
+			print(su_aefc.encode('utf-8').decode('latin-1'))
+			
+			#setting the coords
+			train_coords = np.array(df.norm_frag[:trn].to_list())
+			test_coords  = np.array(df.norm_frag[trn:].to_list())
+		
+		elif model == model_aecnn:
+			#printing the model
+			print(su_aecnn.encode('utf-8').decode('latin-1'))
+			
+			#setting the coords
+			train_coords = np.array(df.dmatrix[:trn].to_list())
+			test_coords  = np.array(df.dmatrix[trn:].to_list())
+	
+		train = data_utils.TensorDataset(torch.Tensor(train_coords), 
+										 torch.Tensor(train_coords))
+		train_loader = data_utils.DataLoader(train, 
+											 batch_size=arg.batchsize,
+											 shuffle=True)
+		test = data_utils.TensorDataset(torch.Tensor(test_coords),
+										torch.Tensor(test_coords))
+		test_loader = data_utils.DataLoader(test,batch_size=1,shuffle=True)
+		
+		
+		# create an optimizer object
+		# Adam optimizer with learning rate 1e-3
+		optimizer = optim.Adam(model.parameters(),
+							   lr=arg.lrate,
+							   weight_decay=arg.l2)
+						   
+		for epoch in range(arg.epochs):
+			loss = 0
+			for batch_features, _ in train_loader:
+				# reshape mini-batch data to [N, 784] matrix
+				# load it to the active device
+				if model == model_aefc:    batch_features = batch_features.view(-1, fshape).to(device)
+				elif model == model_aecnn: batch_features = batch_features.to(device)
+	
+				# reset the gradients back to zero
+				# PyTorch accumulates gradients on subsequent backward passes
+				optimizer.zero_grad()
+		
+				# compute reconstructions
+				outputs = model(batch_features)
+		
+				# compute training reconstruction loss
+				#print(batch_features.size())
+				#print(outputs.size())
+				train_loss = criterion(outputs, batch_features)
+
+		
+				# compute accumulated gradients
+				train_loss.backward()
+		
+				# perform parameter update based on current gradients
+				optimizer.step()
+		
+				# add the mini-batch training loss to epoch loss
+				loss += train_loss.item()
+		
+			# compute the epoch training loss
+			loss = loss / len(train_loader)
+	
+			vloss = 0
+			for bv, _ in test_loader:
+				if model == model_aefc:    bv = bv.view(-1, fshape).to(device)
+				elif model == model_aecnn: bv = bv.to(device)
+		
+				outputs = model(bv)
+				test_loss = criterion(outputs, bv)
+				vloss += test_loss.item()
+			vloss = vloss / len(test_loader)
+
+			# display the epoch training loss
+			print(''.join((f"epoch : {epoch+1}/{arg.epochs}, recon loss = {loss:.8f}",
+						  f" test loss = {vloss:.8f}")))
+
 		loss = 0
-		for batch_features, _ in train_loader:
-			# reshape mini-batch data to [N, 784] matrix
-			# load it to the active device
-			#batch_features = batch_features.view(-1, fshape).to(device)
-			batch_features = batch_features.to(device)
-		
-			# reset the gradients back to zero
-			# PyTorch accumulates gradients on subsequent backward passes
-			optimizer.zero_grad()
-			
-			# compute reconstructions
+		for batch_features, _ in test_loader:
+			if model == model_aefc:    batch_features = batch_features.view(-1, fshape).to(device)
+			elif model == model_aecnn: batch_features = batch_features.to(device)
+	
 			outputs = model(batch_features)
-			
-			# compute training reconstruction loss
-			#print(batch_features.size())
-			#print(outputs.size())
 			train_loss = criterion(outputs, batch_features)
-
-			
-			# compute accumulated gradients
-			train_loss.backward()
-			
-			# perform parameter update based on current gradients
-			optimizer.step()
-			
-			# add the mini-batch training loss to epoch loss
+	
 			loss += train_loss.item()
-			
-		# compute the epoch training loss
-		loss = loss / len(train_loader)
-		
-		vloss = 0
-		for bv, _ in test_loader:
-			#bv = bv.view(-1, fshape).to(device)
-			bv = bv.to(device)
-			
-			outputs = model(bv)
-			test_loss = criterion(outputs, bv)
-			vloss += test_loss.item()
-		vloss = vloss / len(test_loader)
 
-		# display the epoch training loss
-		print(''.join((f"epoch : {epoch+1}/{arg.epochs}, recon loss = {loss:.8f}",
-					  f" test loss = {vloss:.8f}")))
-	
-	loss = 0
-	for batch_features, _ in test_loader:
-		#batch_features = batch_features.view(-1, fshape).to(device)
-		batch_features = batch_features.to(device)
-		
-		outputs = model(batch_features)
-		train_loss = criterion(outputs, batch_features)
-		
-		loss += train_loss.item()
-	
-	loss = loss / len(test_loader)
-	
-	print(f'testing loss: {loss}')
+		loss = loss / len(test_loader)
+
+		print(f'testing loss: {loss}')
