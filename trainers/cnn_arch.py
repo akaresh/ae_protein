@@ -72,6 +72,7 @@ class DynamicAEcnn(Module):
 	-------
 	AutoEncoder model, PyTorch nn.Module object
 	"""
+	###kernel size and stride
 	
 	def __init__(self,
 				units=None,
@@ -106,7 +107,7 @@ class DynamicAEcnn(Module):
 		
 		prev = 1
 		for uu in units:
-			self.layers.append(Linear(prev, uu))
+			self.layers.append(Linear(prev, uu)) ##
 			prev = uu
 		self.layers.append(prev, 1)
 		self.layers = ModuleList(self.layers)
@@ -124,7 +125,7 @@ class DynamicAEcnn(Module):
 		
 		out = x
 		for i in range(len(self.units)-1):
-			out = self.layers[i](out)
+			out = self.layers[i](out) ### = switches from conv2d to contranspose2d
 			out = self.funs[i](out)
 			if self.maxpool[i] != None: out = self.maxpool[i](out)
 			if self.dropout[i] != None: out = self.dropout[i](out)
