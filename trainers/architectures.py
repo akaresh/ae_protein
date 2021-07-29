@@ -3,6 +3,7 @@
 """
 ## Class definitions for AutoEncoders on protein structural fragments ##
 """
+import sys
 
 from torch import relu
 from torch.nn import Dropout, Linear, Module, ModuleList
@@ -170,14 +171,14 @@ class DynamicAEfc(Module):
 				units=None,
 				function_list=None,
 				dropouts=None):
-		
+	
 		assert(inshape != None and type(inshape) == int)
 		assert(units != None and type(units) == list)
 		assert(function_list != None and type(function_list) == list)
 		
 		assert(len(units) == len(function_list))
 		
-		if dropout != None:
+		if dropouts != None:
 			assert(type(dropout) == list)
 			assert(len(dropout) == len(units))
 			self.dropout = []
@@ -186,10 +187,12 @@ class DynamicAEfc(Module):
 				self.dropout.append(Dropout(dp))
 		else: self.dropout = [None]*len(units)
 		
-		super(DynamicAEff, self).__init__()
+		super(DynamicAEfc, self).__init__()
 		self.inshape = inshape
 		self.units = units
-		self.funs = [x() for x in function_list]
+		self.funs = function_list
+		
+		#self.funs = [x() for x in function_list]
 		
 		self.linears = []
 		
@@ -197,8 +200,10 @@ class DynamicAEfc(Module):
 		for uu in units:
 			self.linears.append(Linear(prev, uu))
 			prev = uu
-		self.linears.append(prev, self.inshape)
+		self.linears.append(Linear(prev, self.inshape))
 		self.linears = ModuleList(self.linears)
+		#print(self.linears)
+		
 	
 	def forward(self, x):
 		"""
@@ -242,7 +247,7 @@ if __name__ == '__main__':
 	parser.add_argument('--batchsize', '-b', required=False, type=int,
 		metavar='<int>', default=1028, help='training batchsize')
 	parser.add_argument('--epochs', '-e', required=False, type=int,
-		metavar='<int>', default=20, help='num of epochs to run')
+		metavar='<int>', default=5, help='num of epochs to run')
 	parser.add_argument('--lrate', '-l', required=False, type=float,
 		metavar='<float>', default=1e-3, help='learing rate')
 	parser.add_argument('--l2', '-w', required=False, type=float,
@@ -283,13 +288,17 @@ if __name__ == '__main__':
 	# load it to the specified device, either gpu or cpu
 	
 	model_aefc = SimpleAEfc(inshape=fshape,dropout=arg.dropout).to(device)
+	#print(model_aefc)
 	s_aefc = summary(model_aefc, input_size=(arg.batchsize,1,fshape), verbose=0)
 	su_aefc = repr(s_aefc)
 	#print(su_aefc.encode('utf-8').decode('latin-1'))
 	
-	#model_dyn_aefc = DynamicAEfc(inshape=fshape,dropout=arg.dropout).to(device)
-	#s_dyn_aefc = summary(model_dyn_aefc, inputs_size=(), verbose) 
-	#su_dyn_aefc = repr(s_dyn_aefc)
+	model_dyn_aefc = DynamicAEfc(inshape=fshape,dropouts=arg.dropout, units = [128, 10, 128], 
+								 function_list = [relu, relu, relu]).to(device)
+	#print(model_dyn_aefc)
+	
+	s_dyn_aefc = summary(model_dyn_aefc, inputs_size=(arg.batchsize, 1, fshape), verbose=0) 
+	su_dyn_aefc = repr(s_dyn_aefc)
 	#print(su_dyn_aefc.encode('utf-8').decode('latin-1'))
 	
 		
@@ -303,10 +312,17 @@ if __name__ == '__main__':
 	criterion = nn.L1Loss()
 	
 	#training autoencoder for out specified number of epochs
-	for model in [model_aefc, model_aecnn]: 
+	for model in [model_dyn_aefc, model_aefc, model_aecnn]: 
 		if model == model_aefc:
 			#printing the model
 			print(su_aefc.encode('utf-8').decode('latin-1'))
+			
+			#setting the coords
+			train_coords = np.array(df.norm_frag[:trn].to_list())
+			test_coords  = np.array(df.norm_frag[trn:].to_list())
+		elif model == model_dyn_aefc:
+			#printing the model
+			print(su_dyn_aefc.encode('utf-8').decode('latin-1'))
 			
 			#setting the coords
 			train_coords = np.array(df.norm_frag[:trn].to_list())
@@ -341,7 +357,8 @@ if __name__ == '__main__':
 			for batch_features, _ in train_loader:
 				# reshape mini-batch data to [N, 784] matrix
 				# load it to the active device
-				if model == model_aefc:    batch_features = batch_features.view(-1, fshape).to(device)
+				if model == model_aefc or model == model_dyn_aefc:    
+					batch_features = batch_features.view(-1, fshape).to(device)
 				elif model == model_aecnn: batch_features = batch_features.to(device)
 	
 				# reset the gradients back to zero
@@ -349,11 +366,15 @@ if __name__ == '__main__':
 				optimizer.zero_grad()
 		
 				# compute reconstructions
+				print(batch_features)
 				outputs = model(batch_features)
+				print(outputs)
 		
 				# compute training reconstruction loss
-				#print(batch_features.size())
-				#print(outputs.size())
+				print(fshape)
+				print('batch_features:', batch_features.size())
+				print('outputs:', outputs.size())
+				sys.exit()
 				train_loss = criterion(outputs, batch_features)
 
 		
