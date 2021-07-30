@@ -100,7 +100,6 @@ def fit_model(
 		vloss = vloss / len(test)
 		
 		# display the epoch training loss
-		print(''.join((f"epoch : {epoch+1}/{epochs},",
-					   f" recon loss = {loss:.8f}",
-					   f" test loss = {vloss:.8f}")))
+		print(f"epoch : {epoch+1}/{epochs} recon loss = {loss:.8f} \
+		test loss = {vloss:.8f}")
 	return model
