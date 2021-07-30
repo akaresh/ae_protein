@@ -33,7 +33,7 @@ def normalize_frag(frag):
 	return frag[1:].flatten()
 	
 def distance_matrix(frag):
-	mat = cdist(frag, frag, metric = 'euclidean')
+	mat = cdist(frag, frag, metric='euclidean')
 	mat = np.reshape(mat, (1, mat.shape[0], mat.shape[1]))
 	return mat
 
