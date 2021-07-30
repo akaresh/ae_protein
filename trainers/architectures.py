@@ -40,18 +40,18 @@ class SimpleAEcnn(Module):
 		#structure
 		
 		#encoder
-		self.conv1 = nn.Conv2d(in_channels = 1, out_channels = 10, kernel_size = 2, 
-							   padding = 3)
-		self.conv2 = nn.Conv2d(in_channels = 10, out_channels = 5, kernel_size = 2, 
-		                       padding = 3)
+		self.conv1 = nn.Conv2d(in_channels = 1, out_channels = 10, 
+							   kernel_size = 2, padding = 3)
+		self.conv2 = nn.Conv2d(in_channels = 10, out_channels = 5, 
+							   kernel_size = 2, padding = 3)
 		
 		self.pool = nn.MaxPool2d(2, 2)
 		
 		#decoder
-		self.convt1 = nn.ConvTranspose2d(in_channels = 5, out_channels = 10, kernel_size = 2,
-										 stride = 1)
-		self.convt2 = nn.ConvTranspose2d(in_channels = 10, out_channels = 1, kernel_size = 2,
-										 stride = 1)
+		self.convt1 = nn.ConvTranspose2d(in_channels = 5, out_channels = 10, 
+										 kernel_size = 2, stride = 1)
+		self.convt2 = nn.ConvTranspose2d(in_channels = 10, out_channels = 1, 
+										 kernel_size = 2, stride = 1)
 		
 		self.dropout = Dropout(dropout) if dropout != None else None
 	
@@ -187,7 +187,7 @@ class DynamicAEfc(Module):
 				self.dropout.append(Dropout(dp))
 		else: self.dropout = [None]*len(units)
 		
-		super(DynamicAEfc, self).__init__()
+		super().__init__()
 		self.inshape = inshape
 		self.units = units
 		self.funs = function_list
@@ -197,13 +197,14 @@ class DynamicAEfc(Module):
 		self.linears = []
 		
 		prev = self.inshape
+		#print(prev)
 		for uu in units:
 			self.linears.append(Linear(prev, uu))
 			prev = uu
+			#print(prev)
+		#print(prev)
 		self.linears.append(Linear(prev, self.inshape))
 		self.linears = ModuleList(self.linears)
-		#print(self.linears)
-		
 	
 	def forward(self, x):
 		"""
@@ -212,11 +213,11 @@ class DynamicAEfc(Module):
 		"""
 		
 		out = x
-		for i in range(len(self.units)-1):
+		for i in range(len(self.linears)-1):
 			out = self.linears[i](out)
 			if self.dropout[i] != None: out = self.dropout[i](out)
 			out = self.funs[i](out)
-		reconstructed = self.funs[-1](out)
+		reconstructed = self.linears[-1](out)
 		
 		return reconstructed
 
@@ -235,7 +236,7 @@ if __name__ == '__main__':
 	import torch.optim as optim
 	from torchinfo import summary
 	import torchvision
-	from training_tools import normalize_frag, distance_matrix
+	from training_tools import normalize_frag, distance_matrix, fit_model
 	
 	parser = argparse.ArgumentParser(description=''.join(
 									('Test training for PyTorch Model Class',
@@ -264,156 +265,114 @@ if __name__ == '__main__':
 	df['dmatrix'] = df.xyz_set.apply(distance_matrix)
 	
 	fshape = df.norm_frag[0].shape[0]
+	dshape = df.dmatrix[0].shape[0]
 	
 	print(df.head(3))
 	print(df.columns)
 	print(df.shape)
-	
+	print()
 	trn = floor(df.shape[0]*arg.split)
 	
-	# 	setting seed to just compare the results
+	# setting seed to just compare the results
 	seed = 42
-	# 	setting the random seed from pytorch random number generators
+	# setting the random seed from pytorch random number generators
 	torch.manual_seed(seed)
-	# 	enabling benchmark mode in cudnn (GPU accelerated library of primitives 
-	# 	for deep neural net)
+	# enabling benchmark mode in cudnn (GPU accelerated library of primitives 
+	# for deep neural net)
 	torch.backends.cudnn.benchmark = False
-	# 	making experiments reproducible
+	# making experiments reproducible
 	torch.backends.cudnn.deterministic = True
 	
-	# 	use gpu if available
+	# use gpu if available
 	device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 	
 	# create a model from `AE` autoencoder class
 	# load it to the specified device, either gpu or cpu
 	
 	model_aefc = SimpleAEfc(inshape=fshape,dropout=arg.dropout).to(device)
-	#print(model_aefc)
 	s_aefc = summary(model_aefc, input_size=(arg.batchsize,1,fshape), verbose=0)
 	su_aefc = repr(s_aefc)
-	#print(su_aefc.encode('utf-8').decode('latin-1'))
+	print(su_aefc.encode('utf-8').decode('latin-1'))
+	print()
+	# Set the data loaders
+	train_coords = np.array(df.norm_frag[:trn].to_list())
+	test_coords  = np.array(df.norm_frag[trn:].to_list())
 	
-	model_dyn_aefc = DynamicAEfc(inshape=fshape,dropouts=arg.dropout, units = [128, 10, 128], 
-								 function_list = [relu, relu, relu]).to(device)
-	#print(model_dyn_aefc)
+	train = data_utils.TensorDataset(torch.Tensor(train_coords), 
+									 torch.Tensor(train_coords))
+	train_loader = data_utils.DataLoader(train, 
+										 batch_size=arg.batchsize,
+										 shuffle=True)
+	test = data_utils.TensorDataset(torch.Tensor(test_coords),
+									torch.Tensor(test_coords))
+	test_loader = data_utils.DataLoader(test,batch_size=1,shuffle=True)
 	
-	s_dyn_aefc = summary(model_dyn_aefc, inputs_size=(arg.batchsize, 1, fshape), verbose=0) 
-	su_dyn_aefc = repr(s_dyn_aefc)
-	#print(su_dyn_aefc.encode('utf-8').decode('latin-1'))
-	
-		
-	model_aecnn = SimpleAEcnn(dropout=arg.dropout).to(device)
-	s_aecnn = summary(model_aecnn, input_size = (arg.batchsize, 1, 7, 7), verbose = 0)
-	su_aecnn = repr(s_aecnn)
-	#print(su_aecnn.encode('utf-8').decode('latin-1'))
-	
-	
-	# mean-squared error loss
+	# Set loss and optimizer
 	criterion = nn.L1Loss()
+	optimizer = optim.Adam(model_aefc.parameters(),
+						   lr=arg.lrate,
+						   weight_decay=arg.l2)
 	
-	#training autoencoder for out specified number of epochs
-	for model in [model_dyn_aefc, model_aefc, model_aecnn]: 
-		if model == model_aefc:
-			#printing the model
-			print(su_aefc.encode('utf-8').decode('latin-1'))
-			
-			#setting the coords
-			train_coords = np.array(df.norm_frag[:trn].to_list())
-			test_coords  = np.array(df.norm_frag[trn:].to_list())
-		elif model == model_dyn_aefc:
-			#printing the model
-			print(su_dyn_aefc.encode('utf-8').decode('latin-1'))
-			
-			#setting the coords
-			train_coords = np.array(df.norm_frag[:trn].to_list())
-			test_coords  = np.array(df.norm_frag[trn:].to_list())
-		
-		elif model == model_aecnn:
-			#printing the model
-			print(su_aecnn.encode('utf-8').decode('latin-1'))
-			
-			#setting the coords
-			train_coords = np.array(df.dmatrix[:trn].to_list())
-			test_coords  = np.array(df.dmatrix[trn:].to_list())
+	# Fit the model
+	model_aefc = fit_model(model_aefc,
+						   train=train_loader,
+						   test=test_loader,
+						   optimizer=optimizer,
+						   criterion=criterion,
+						   device=device,
+						   epochs=arg.epochs)
 	
-		train = data_utils.TensorDataset(torch.Tensor(train_coords), 
-										 torch.Tensor(train_coords))
-		train_loader = data_utils.DataLoader(train, 
-											 batch_size=arg.batchsize,
-											 shuffle=True)
-		test = data_utils.TensorDataset(torch.Tensor(test_coords),
-										torch.Tensor(test_coords))
-		test_loader = data_utils.DataLoader(test,batch_size=1,shuffle=True)
-		
-		
-		# create an optimizer object
-		# Adam optimizer with learning rate 1e-3
-		optimizer = optim.Adam(model.parameters(),
-							   lr=arg.lrate,
-							   weight_decay=arg.l2)
-						   
-		for epoch in range(arg.epochs):
-			loss = 0
-			for batch_features, _ in train_loader:
-				# reshape mini-batch data to [N, 784] matrix
-				# load it to the active device
-				if model == model_aefc or model == model_dyn_aefc:    
-					batch_features = batch_features.view(-1, fshape).to(device)
-				elif model == model_aecnn: batch_features = batch_features.to(device)
+	model_dyn_aefc = DynamicAEfc(inshape=fshape,dropouts=arg.dropout,
+								 units = [128, 10, 128], 
+								 function_list = [relu, relu, relu]).to(device)
 	
-				# reset the gradients back to zero
-				# PyTorch accumulates gradients on subsequent backward passes
-				optimizer.zero_grad()
-		
-				# compute reconstructions
-				print(batch_features)
-				outputs = model(batch_features)
-				print(outputs)
-		
-				# compute training reconstruction loss
-				print(fshape)
-				print('batch_features:', batch_features.size())
-				print('outputs:', outputs.size())
-				sys.exit()
-				train_loss = criterion(outputs, batch_features)
-
-		
-				# compute accumulated gradients
-				train_loss.backward()
-		
-				# perform parameter update based on current gradients
-				optimizer.step()
-		
-				# add the mini-batch training loss to epoch loss
-				loss += train_loss.item()
-		
-			# compute the epoch training loss
-			loss = loss / len(train_loader)
+	s_dyn_aefc = summary(model_dyn_aefc, input_size=(arg.batchsize, 1, fshape), 
+						 verbose=0)
+	su_dyn_aefc = repr(s_dyn_aefc)
+	print(su_dyn_aefc.encode('utf-8').decode('latin-1'))
+	print()
+	# Set optimizer
+	optimizer = optim.Adam(model_dyn_aefc.parameters(),
+						   lr=arg.lrate,
+						   weight_decay=arg.l2)
 	
-			vloss = 0
-			for bv, _ in test_loader:
-				if model == model_aefc:    bv = bv.view(-1, fshape).to(device)
-				elif model == model_aecnn: bv = bv.to(device)
-		
-				outputs = model(bv)
-				test_loss = criterion(outputs, bv)
-				vloss += test_loss.item()
-			vloss = vloss / len(test_loader)
-
-			# display the epoch training loss
-			print(''.join((f"epoch : {epoch+1}/{arg.epochs}, recon loss = {loss:.8f}",
-						  f" test loss = {vloss:.8f}")))
-
-		loss = 0
-		for batch_features, _ in test_loader:
-			if model == model_aefc:    batch_features = batch_features.view(-1, fshape).to(device)
-			elif model == model_aecnn: batch_features = batch_features.to(device)
+	# Fit the model
+	model_dyn_aefc = fit_model(model_dyn_aefc,
+							   train=train_loader,
+							   test=test_loader,
+							   optimizer=optimizer,
+							   criterion=criterion,
+							   epochs=arg.epochs)
 	
-			outputs = model(batch_features)
-			train_loss = criterion(outputs, batch_features)
+	model_aecnn = SimpleAEcnn(dropout=arg.dropout).to(device)
+	s_aecnn = summary(model_aecnn,
+					  input_size = (arg.batchsize, 1, dshape, dshape), 
+					  verbose = 0)
+	su_aecnn = repr(s_aecnn)
+	print(su_aecnn.encode('utf-8').decode('latin-1'))
+	print()
+	# Set optimizer
+	optimizer = optim.Adam(model_aecnn.parameters(),
+						   lr=arg.lrate,
+						   weight_decay=arg.l2)
 	
-			loss += train_loss.item()
-
-		loss = loss / len(test_loader)
-
-		print(f'testing loss: {loss}')
+	# Set the data loaders
+	train_coords = np.array(df.dmatrix[:trn].to_list())
+	test_coords  = np.array(df.dmatrix[trn:].to_list())
+	
+	train = data_utils.TensorDataset(torch.Tensor(train_coords), 
+									 torch.Tensor(train_coords))
+	train_loader = data_utils.DataLoader(train, 
+										 batch_size=arg.batchsize,
+										 shuffle=True)
+	test = data_utils.TensorDataset(torch.Tensor(test_coords),
+									torch.Tensor(test_coords))
+	test_loader = data_utils.DataLoader(test,batch_size=1,shuffle=True)
+	
+	# Fit the model
+	model_aecnn = fit_model(model_aecnn,
+							train=train_loader,
+							test=test_loader,
+							optimizer=optimizer,
+							criterion=criterion,
+							epochs=arg.epochs)
