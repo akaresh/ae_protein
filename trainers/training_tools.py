@@ -63,6 +63,8 @@ def fit_model(
 	Returns fitted model
 	"""
 	
+	assert(type(epochs) == int)
+	
 	for epoch in range(epochs):
 		loss = 0
 		for batch_features, _ in train:
