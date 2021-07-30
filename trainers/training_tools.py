@@ -37,13 +37,14 @@ def distance_matrix(frag):
 	mat = np.reshape(mat, (1, mat.shape[0], mat.shape[1]))
 	return mat
 
-def fit_model(model,
-			  train=None,
-			  test=None,
-			  optimizer=None,
-			  criterion=None,
-			  device=None,
-			  epochs=None):
+def fit_model(
+	model,
+	train=None,
+	test=None,
+	optimizer=None,
+	criterion=None,
+	device=None,
+	epochs=None):
 	
 	"""
 	Fit functions for all models
