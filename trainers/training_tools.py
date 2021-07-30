@@ -51,12 +51,12 @@ def fit_model(
 	
 	Parameters
 	----------
-	train: PyTorch dataloader
-	test: PyTorch dataloader
-	device: CPU/GPU device
+	train:     PyTorch dataloader
+	test:      PyTorch dataloader
+	device:    CPU/GPU device
 	optimizer: PyTorch optimizer
 	criterion: PyTorch loss
-	epochs: Number of epochs
+	epochs:    Number of epochs
 	
 	Returns
 	-------
