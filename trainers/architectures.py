@@ -375,7 +375,8 @@ if __name__ == '__main__':
 		test=test_loader,
 		optimizer=optimizer,
 		criterion=criterion,
-		epochs=arg.epochs)
+		epochs=arg.epochs,
+		device=device)
 	
 	model_aecnn = SimpleAEcnn(dropout=arg.dropout).to(device)
 	s_aecnn = summary(
@@ -419,4 +420,5 @@ if __name__ == '__main__':
 		test=test_loader,
 		optimizer=optimizer,
 		criterion=criterion,
-		epochs=arg.epochs)
+		epochs=arg.epochs,
+		device=device)

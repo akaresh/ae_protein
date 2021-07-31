@@ -1,4 +1,4 @@
-#!/usr/bin/python3 
+#!/usr/bin/python3
 
 """
 Shared library for functions for PyTorch NN training
@@ -7,36 +7,74 @@ Shared library for functions for PyTorch NN training
 import numpy as np
 from scipy.spatial.distance import cdist
 
+
 def normalize_frag(frag):
 	"""
 	Normalize structural fragment coordinates
+	First atom of fragment is set to the origin. 
+	Each x,y,z axis normalized by the largest value in each respective
+	dimension. 
+	
+	Input
+	-----
+	frag: list of coordinates
+	
+	Returns
+	-------
+	frag: returns the normalized fragment.
+		The first coordinate is removed since it is 0 and will not have effect
+		the FC networks we want to build. 
+		The numpy array that is returned is flattened. 
 	"""
+	assert(type(frag) == list)
+	
 	frag = np.array(frag)
 	start = frag[0]
 	for i in range(1, frag.shape[0]):
 		frag[i] -= start
 	frag[0] -= start
 	
-	justx = frag[:,0]
-	justy = frag[:,1]
-	justz = frag[:,2]
+	justx = frag[:, 0]
+	justy = frag[:, 1]
+	justz = frag[:, 2]
 	
 	xf = np.amax(np.abs(justx))
 	yf = np.amax(np.abs(justy))
 	zf = np.amax(np.abs(justz))
 	
 	for i in range(frag.shape[0]):
-		frag[i,0] /= xf
-		frag[i,1] /= yf
-		frag[i,2] /= zf
+		frag[i, 0] /= xf
+		frag[i, 1] /= yf
+		frag[i, 2] /= zf
 	
 	return frag[1:].flatten()
 	
+
 def distance_matrix(frag):
+	"""
+	Create the matrix of distances between all pairs of atoms in fragment. 
+	Matrix that is built is symmetric. 
+	
+	Example: input fragment is 8 coordinates, output matrix is 8x8
+	Using cdist from scipy.spatial.distance and metric euclidean
+	
+	Input
+	-----
+	frag: list of coordinates for atoms in fragment
+	
+	Returns
+	------
+	mat: numpy symmetric matrix of distances. 
+		Matrix is reshaped to tensor for input into Torch CNN. 
+		Dimensions are inflated. Example: matrix 8x8, result is (1, 8, 8)
+	"""
+	assert(type(frag) == list)
+	
 	mat = cdist(frag, frag, metric='euclidean')
 	mat = np.reshape(mat, (1, mat.shape[0], mat.shape[1]))
 	
 	return mat
+
 
 def fit_model(
 	model,
@@ -48,7 +86,7 @@ def fit_model(
 	epochs=None):
 	
 	"""
-	Fit functions for all models
+	Fit function for all Torch Models
 	
 	Parameters
 	----------
@@ -63,8 +101,18 @@ def fit_model(
 	-------
 	Returns fitted model
 	"""
+	assert(model is not None)
+	assert(hasattr(model, 'forward'))
+	assert(train is not None)
+	assert(hasattr(train, 'batch_size'))
+	assert(type(epochs) == int and epochs > 0)
+	assert(device is not None)
+	assert(optimizer is not None)
+	assert(hasattr(optimizer, 'zero_grad'))
+	assert(criterion is not None)
+	assert(hasattr(criterion, 'forward'))
 	
-	assert(type(epochs) == int)
+	if test is not None: assert(hasattr(test, 'batch_size'))
 	
 	for epoch in range(epochs):
 		loss = 0
