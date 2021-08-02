@@ -51,7 +51,8 @@ if __name__ == '__main__':
 			coords = f'{a[6]:>8.3f}{a[7]:>8.3f}{a[8]:>8.3f}'
 			end = "  1.00  0.00           C  "
 			print(begin+coords+end)
-		sys.exit()
+		print('new fragment\n')
+		#sys.exit()
 			
 			
 			
