@@ -1,4 +1,4 @@
-# protein autoencoder
+# Learning representations for protein structural fragments
 
 ## Priorities ##
 
