@@ -1,5 +1,9 @@
 #!/usr/bin/python3 
 
+"""
+Script to generate dataset of protein structure fragments. 
+"""
+
 import argparse
 import json
 import pandas as pd
@@ -7,22 +11,28 @@ import sys
 
 from fragment_lib import make_atom_frame, make_fragment_frame
 
-#from fragment_lib import make_CAframe, make_bbframe, make_bbcen, make_bbsc
 
 parser = argparse.ArgumentParser(description='making fragments')
-parser.add_argument('--file', required=False, type=str,
-	metavar='<path>', help='path to cif file')
-parser.add_argument('--cifs', '-c', required=False, type=str,
-	metavar='<path>', help='path to file containing set of cifs to build')
-parser.add_argument('--atoms', '-a', required=False, type=str, default=None,
-	metavar='<path>', help='path to prebuilt atom data frame')
-parser.add_argument('--size', required=False, type=int, default = 3,
-	metavar='<int>', help='length of fragments')
-parser.add_argument('--type', required=False, type=str, default='CA',
-	metavar='<int>', help='type of fragments: CA, bb, bbcen, bbsc')
-parser.add_argument('--outatoms', '-u', required=False, type=str, default=None, 
+parser.add_argument(
+	'--file', required=False, type=str, metavar='<path>', 
+	help='path to cif file')
+parser.add_argument(
+	'--cifs', '-c', required=False, type=str, metavar='<path>', 
+	help='path to file containing set of cifs to build')
+parser.add_argument(
+	'--atoms', '-a', required=False, type=str, default=None, metavar='<path>',
+	help='path to prebuilt atom data frame')
+parser.add_argument(
+	'--size', required=False, type=int, default=3, metavar='<int>',
+	help='length of fragments')
+parser.add_argument(
+	'--type', required=False, type=str, default='CA', metavar='<int>',
+	help='type of fragments: CA, bb, bbcen, bbsc')
+parser.add_argument(
+	'--outatoms', '-u', required=False, type=str, default=None,
 	metavar='<path>', help='save location for atom frame')
-parser.add_argument('--outfrag', '-o', required=False, type=str, default=None,
+parser.add_argument(
+	'--outfrag', '-o', required=False, type=str, default=None,
 	metavar='<path>', help='save location for fragment frame')
 
 arg = parser.parse_args()
@@ -67,13 +77,3 @@ elif arg.cifs:
 	if arg.outfrag: frag_df.to_pickle(arg.outfrag, compression='xz')
 	if arg.atoms == None:
 		if arg.outatoms: atm_frame.to_pickle(arg.outatoms, compression='xz')
-	
-
-"""
-4. then actually make the fragment frame
-5. size = 7
-6. 4 fragment methods, 3, 5, 7, 9, 11, 15, 21
-	- 28 
-
-
-"""
