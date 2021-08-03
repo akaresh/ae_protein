@@ -12,7 +12,7 @@ setup:
 	conda env update --file fqa.yaml --prune
 	
 con:
-	conda env export --no-builds --name fqa > fqa.yaml
+	conda env export --from-history --name fqa > fqa.yaml
 
 lint:
 	pycodestyle --ignore=W1,W293,E701,E221 trainers/
