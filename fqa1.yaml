@@ -1,0 +1,7 @@
+channels:
+- defaults
+dependencies:
+- pip:
+  - pyyaml==5.4.1
+  - torch==1.9.0
+  - typing-extensions==3.10.0.0
