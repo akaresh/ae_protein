@@ -6,6 +6,7 @@ Shared library for functions for PyTorch NN training
 
 import numpy as np
 from scipy.spatial.distance import cdist
+import Bio.Data.IUPACData as conv
 
 
 def normalize_frag(frag):
@@ -154,3 +155,53 @@ def fit_model(
 		print(f"epoch : {epoch+1}/{epochs} recon loss = {loss:.8f} \
 		test loss = {vloss:.8f}")
 	return model
+
+
+def pdb_writer(atoms=None, seq=None, chain=None, coords=None):
+	import sys
+	print('atoms', atoms)
+	print('seq', seq)
+	print('chain', chain)
+	print('coords', coords)
+
+	#asserts
+	assert(atoms!=None and type(atoms) == list)
+	assert(seq!=None and len(seq) > 3)
+	assert(chain!=None and type(chain) == list)
+	assert(coords!=None and type(coords) == list)
+	assert(len(atoms) == len(chain) == len(seq))
+
+
+	###asserts and checks
+	#check atoms, seq, chain, coords
+	#if seq is type str, length < 4
+
+	#converting
+	aa_dict = conv.protein_letters_1to3_extended
+
+	#residue id
+	res_id = 0
+	prev = None
+
+	pdb_str = ''
+	connect_str = ''
+
+	#printing the pdb
+	for i, (a, s, ch, coo) in enumerate(zip(atoms, seq, chain, coords)):
+
+		if s != prev:
+			res_id += 1
+			prev = s
+
+		x, y, z = coo
+
+		begin = f'ATOM  {i+1:>5} {a:<4} {aa_dict[s].upper():>3} {ch}{res_id:>4}    '
+		coordinates = f'{x:>8.3f}{y:>8.3f}{z:>8.3f}'
+		end = '  1.00  0.00           C  '
+		pdb_str += begin+coordinates+end+'\n'
+		if i+1 != len(atoms):
+			connect = f'CONECT{(i+1):>5}{(i+2):>5}\n'
+			connect_str += connect
+	print(pdb_str+connect_str)
+	sys.exit()
+	return True

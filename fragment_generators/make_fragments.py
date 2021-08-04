@@ -42,7 +42,7 @@ assert(arg.type == 'CA' or arg.type == 'bb' or arg.type == 'bbcen'
 
 if arg.file:
 	if arg.atoms: atm_frame = pd.read_pickle(arg.atoms, compression='xz')
-	else:         atm_frame = make_atom_frame([arg.file])
+	else:         atm_frame = make_atom_frame([arg.file], ftype = arg.type)
 	
 	frag_df = make_fragment_frame(atm_frame, arg.size, ftype=arg.type)
 	
@@ -64,7 +64,7 @@ elif arg.cifs:
 		with open(arg.cifs, 'r') as fp:
 			cifs = json.load(fp)
 		fp.close()
-		atm_frame = make_atom_frame(cifs)
+		atm_frame = make_atom_frame(cifs, ftype = arg.type)
 	
 	print('finished atom frame')
 	

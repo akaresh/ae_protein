@@ -245,7 +245,7 @@ if __name__ == '__main__':
 	import torch.optim as optim
 	from torchinfo import summary
 	import torchvision
-	from training_tools import normalize_frag, distance_matrix, fit_model
+	from training_tools import normalize_frag, distance_matrix, fit_model, pdb_writer
 	
 	parser = argparse.ArgumentParser(
 		description='Test PyTorch Model definitions in library')
@@ -270,6 +270,9 @@ if __name__ == '__main__':
 	parser.add_argument(
 		'--dropout', '-u', required=False, type=float,
 		metavar='<float>', default=None, help='dropout rate')
+	parser.add_argument(
+		'--vis', '-v', required=False, type=bool,
+		metavar='<string>', default=None, help='visualization')
 	
 	arg = parser.parse_args()
 	
@@ -278,11 +281,14 @@ if __name__ == '__main__':
 	
 	df['norm_frag'] = df.xyz_set.apply(normalize_frag)
 	df['dmatrix'] = df.xyz_set.apply(distance_matrix)
+	# print(df.iloc[0])
+	# sys.exit()
 	
 	fshape = df.norm_frag[0].shape[0]
 	dshape = df.dmatrix[0].shape[0]
 	
 	print(df.head(3))
+	print(df.tail(3))
 	print(df.columns)
 	print(df.shape)
 	print()
@@ -309,12 +315,18 @@ if __name__ == '__main__':
 	s_aefc = summary(
 		model_aefc, input_size=(arg.batchsize, 1, fshape), verbose=0)
 	su_aefc = repr(s_aefc)
-	print(su_aefc.encode('utf-8').decode('latin-1'))
-	print()
+	#print(su_aefc.encode('utf-8').decode('latin-1'))
+	#print()
 	
 	# Set the data loaders
 	train_coords = np.array(df.norm_frag[:trn].to_list())
 	test_coords  = np.array(df.norm_frag[trn:].to_list())
+
+
+	# print(df.xyz_set[trn], len(df.xyz_set[trn]))
+	# print(test_coords[0], len(test_coords[0]))
+
+	# sys.exit()
 	
 	train = data_utils.TensorDataset(
 		torch.Tensor(train_coords),
@@ -330,6 +342,9 @@ if __name__ == '__main__':
 		torch.Tensor(test_coords))
 	
 	test_loader = data_utils.DataLoader(test, batch_size=1, shuffle=True)
+
+
+
 	
 	# Set loss and optimizer
 	criterion = nn.L1Loss()
@@ -347,6 +362,26 @@ if __name__ == '__main__':
 		criterion=criterion,
 		device=device,
 		epochs=arg.epochs)
+
+		#if arg.vis:
+	#print('Visualizer')
+	# #initial
+	# pdb_writer(coords=df.xyz_set[trn], seq=df.fragment_seq[trn],
+	# 		   atoms=[df.fragment_type[trn][0]]*len(df.fragment_seq[trn]),
+	# 		   chain=[df.chain_id[trn][0]]*len(df.fragment_seq[trn]))
+	# #normalized
+	# pdb_writer(coords=[df.norm_frag[trn][i:i+3] for i in range(0, len(df.norm_frag[trn]), 3)],
+	# 		   seq=df.fragment_seq[trn],
+	# 		   atoms=[df.fragment_type[trn][0]]*len(df.fragment_seq[trn]),
+	# 		   chain=[df.chain_id[trn][0]]*len(df.fragment_seq[trn]))
+	#normalized after training
+	saved = model_aefc.forward(test[0][0])
+	pdb_writer(coords=[saved[i:i+3] for i in range(0, len(saved),3)],
+			   seq=df.fragment_seq[trn],
+			   atoms=[df.fragment_type[trn][0]]*len(df.fragment_seq[trn]),
+			   chain=[df.chain_id[trn][0]]*len(df.fragment_seq[trn]))
+	#pic 1. how the frag look like, pic 2 (frag normalized before and after the model)
+
 	
 	model_dyn_aefc = DynamicAEfc(
 		inshape=fshape,
@@ -422,3 +457,5 @@ if __name__ == '__main__':
 		criterion=criterion,
 		epochs=arg.epochs,
 		device=device)
+
+	#visualization here

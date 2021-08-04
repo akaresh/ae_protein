@@ -10,7 +10,8 @@
 
 
 def pdb_gen(row, dtype):
-		#converting to 3 letter code for pdb file
+	#change dtype later
+	#converting to 3 letter code for pdb file
 	aa_dict = conv.protein_letters_1to3_extended
 
 	pdb_to_list = []
@@ -42,7 +43,29 @@ def pdb_gen(row, dtype):
 		coords = f'{a[6]:>8.3f}{a[7]:>8.3f}{a[8]:>8.3f}'
 		end = "  1.00  0.00           C  "
 		print(begin+coords+end)
+
 	return pdb_to_list
+
+def pdb_writer(atoms=None, seq=None, chain=None, coords=None):
+	aa_dict = conv.protein_letters_1to3_extended
+
+	###asserts and checks
+	#check atoms, seq, chain, coords
+	#if seq is type str, length < 4
+
+	res_id = 0
+	prev = None
+	for i, (a, s, ch, coo) in enumerate(zip(atoms, seq, chain, coords)):
+		if s != prev: res_id += 1
+		x, y, z = coo
+
+		begin = f'ATOM  {i+1:>5} {a:<4} {aa_dict[s].upper():>3} {ch}{res_id:>4}    '
+		coordinates = f'{x:>8.3f}{y:>8.3f}{z:>8.3f}'
+		end = "  1.00  0.00           C  "
+		print(begin+coordinates+end)
+	return True
+
+
 
 #!/usr/bin/python3
 if __name__ == '__main__':
@@ -90,7 +113,11 @@ if __name__ == '__main__':
 	# print()
 	#sys.exit()
 
+	pdb_writer(atoms=['CA']*7, seq=df.fragment_seq[1], chain=['A']*7, coords=df.xyz_set[0])
+	sys.exit()
+
 	for idx, frag_row in df.iterrows():
+		print(frag_row)
 		initial = pdb_gen(frag_row, 'xyz')
 		#normalized_frag = pdb_gen(frag_row, 'normalized')
 		#after_cnn = pdb_gen(frag_row, 'cnn')
