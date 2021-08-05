@@ -1,6 +1,10 @@
-name: fqa
 channels:
-  - defaults
+- defaults
 dependencies:
-  - python=3.8
-prefix: /share/korflab/home/kfraga/.conda/fqa
+- pip:
+  - numpy==1.21.1
+  - pyyaml==5.4.1
+  - torch==1.9.0
+  - typing-extensions==3.10.0.0
+- python=3.8
+name: fqa
