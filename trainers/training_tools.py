@@ -3,7 +3,7 @@
 """
 Shared library for functions for PyTorch NN training
 """
-
+import datetime
 import numpy as np
 from scipy.spatial.distance import cdist
 import Bio.Data.IUPACData as conv
@@ -48,7 +48,7 @@ def normalize_frag(frag):
 		frag[i, 1] /= yf
 		frag[i, 2] /= zf
 	
-	return frag[1:].flatten()
+	return frag[0:].flatten()
 	
 
 def distance_matrix(frag):
@@ -159,10 +159,12 @@ def fit_model(
 
 def pdb_writer(atoms=None, seq=None, chain=None, coords=None):
 	import sys
-	print('atoms', atoms)
-	print('seq', seq)
-	print('chain', chain)
-	print('coords', coords)
+	# print('atoms', atoms)
+	# print('seq', seq)
+	# print('chain', chain)
+	# print('coords', coords)
+
+	path = 'images/'
 
 	#asserts
 	assert(atoms!=None and type(atoms) == list)
@@ -171,13 +173,11 @@ def pdb_writer(atoms=None, seq=None, chain=None, coords=None):
 	assert(coords!=None and type(coords) == list)
 	assert(len(atoms) == len(chain) == len(seq))
 
-
-	###asserts and checks
-	#check atoms, seq, chain, coords
-	#if seq is type str, length < 4
-
 	#converting
 	aa_dict = conv.protein_letters_1to3_extended
+
+	#pdb file creating
+	pdbfile = open(f'file', 'w')
 
 	#residue id
 	res_id = 0

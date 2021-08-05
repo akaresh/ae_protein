@@ -1,0 +1,39 @@
+      pdb_id  ...                                            dmatrix
+7277   3vsna  ...  [[[0.0, 3.799942455293494, 6.749721639491533, ...
+2168   2qhpa  ...  [[[0.0, 3.8433237126961783, 5.493551355977228,...
+13406  4i9ba  ...  [[[0.0, 3.7760808196096867, 7.061158181778393,...
+
+[3 rows x 9 columns]
+      pdb_id  ...                                            dmatrix
+5390   4zu2a  ...  [[[0.0, 3.8493914615834814, 6.619706496119236,...
+860    5t3ba  ...  [[[0.0, 3.808445538904177, 7.0435346943610195,...
+15795  3acxa  ...  [[[0.0, 3.8127531686205365, 5.549914437417884,...
+
+[3 rows x 9 columns]
+Index(['pdb_id', 'model_id', 'chain_id', 'fragment_ids', 'fragment_seq',
+       'xyz_set', 'fragment_type', 'norm_frag', 'dmatrix'],
+      dtype='object')
+(23611, 9)
+
+epoch : 1/5 recon loss = 0.54275155 		test loss = 0.49053687
+epoch : 2/5 recon loss = 0.41705326 		test loss = 0.33891506
+epoch : 3/5 recon loss = 0.29118061 		test loss = 0.25795348
+epoch : 4/5 recon loss = 0.24971605 		test loss = 0.24007874
+epoch : 5/5 recon loss = 0.23451302 		test loss = 0.22276123
+atoms ['C', 'C', 'C', 'C', 'C', 'C', 'C']
+seq QVSEIRE
+chain ['A', 'A', 'A', 'A', 'A', 'A', 'A']
+coords [tensor([ 0.3106, -0.1600, -0.2111], grad_fn=<SliceBackward>), tensor([ 0.4754, -0.4080, -0.3541], grad_fn=<SliceBackward>), tensor([ 0.5321, -0.5176, -0.4720], grad_fn=<SliceBackward>), tensor([ 0.6446, -0.7108, -0.5362], grad_fn=<SliceBackward>), tensor([ 0.8595, -0.9047, -0.6751], grad_fn=<SliceBackward>), tensor([ 0.9453, -1.0378, -0.7185], grad_fn=<SliceBackward>)]
+ATOM      1 C    GLN A   1       0.311  -0.160  -0.211  1.00  0.00           C  
+ATOM      2 C    VAL A   2       0.475  -0.408  -0.354  1.00  0.00           C  
+ATOM      3 C    SER A   3       0.532  -0.518  -0.472  1.00  0.00           C  
+ATOM      4 C    GLU A   4       0.645  -0.711  -0.536  1.00  0.00           C  
+ATOM      5 C    ILE A   5       0.859  -0.905  -0.675  1.00  0.00           C  
+ATOM      6 C    ARG A   6       0.945  -1.038  -0.718  1.00  0.00           C  
+CONECT    1    2
+CONECT    2    3
+CONECT    3    4
+CONECT    4    5
+CONECT    5    6
+CONECT    6    7
+
