@@ -315,8 +315,8 @@ if __name__ == '__main__':
 	s_aefc = summary(
 		model_aefc, input_size=(arg.batchsize, 1, fshape), verbose=0)
 	su_aefc = repr(s_aefc)
-	#print(su_aefc.encode('utf-8').decode('latin-1'))
-	#print()
+	print(su_aefc.encode('utf-8').decode('latin-1'))
+	print()
 	
 	# Set the data loaders
 	train_coords = np.array(df.norm_frag[:trn].to_list())
