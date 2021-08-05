@@ -1,5 +1,11 @@
 #!/usr/bin/python3 
 
+"""
+this takes in the pdbid list from pisces
+this needs documenting
+"""
+
+
 import csv
 import os
 import sys
