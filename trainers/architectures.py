@@ -40,27 +40,27 @@ class SimpleAEcnn(Module):
 		# encoder
 		self.conv1 = nn.Conv2d(
 			in_channels=1,
-			out_channels=10,
+			out_channels=100,
 			kernel_size=2,
-			padding=3)
+			padding=1)
 		
 		self.conv2 = nn.Conv2d(
-			in_channels=10,
-			out_channels=5,
+			in_channels=100,
+			out_channels=50,
 			kernel_size=2,
-			padding=3)
+			padding=1)
 		
-		self.pool = nn.MaxPool2d(2, 2)
+		self.pool = nn.MaxPool2d(2, stride=1)
 		
 		# decoder
 		self.convt1 = nn.ConvTranspose2d(
-			in_channels=5,
-			out_channels=10,
+			in_channels=50,
+			out_channels=100,
 			kernel_size=2,
 			stride=1)
 		
 		self.convt2 = nn.ConvTranspose2d(
-			in_channels=10,
+			in_channels=100,
 			out_channels=1,
 			kernel_size=2,
 			stride=1)
@@ -192,10 +192,10 @@ class DynamicAEfc(Module):
 		assert(len(units) == len(function_list))
 		
 		if dropouts is not None:
-			assert(type(dropout) == list)
-			assert(len(dropout) == len(units))
+			assert(type(dropouts) == list)
+			assert(len(dropouts) == len(units))
 			self.dropout = []
-			for dp in dropout:
+			for dp in dropouts:
 				assert(dp < 1.0 and dp > 0.0)
 				self.dropout.append(Dropout(dp))
 		else: self.dropout = [None] * len(units)
@@ -245,7 +245,8 @@ if __name__ == '__main__':
 	import torch.optim as optim
 	from torchinfo import summary
 	import torchvision
-	from training_tools import normalize_frag, distance_matrix, fit_model, pdb_writer
+	from training_tools import normalize_frag, distance_matrix, fit_model
+	from training_tools import pdb_writer
 	
 	parser = argparse.ArgumentParser(
 		description='Test PyTorch Model definitions in library')
@@ -271,8 +272,8 @@ if __name__ == '__main__':
 		'--dropout', '-u', required=False, type=float,
 		metavar='<float>', default=None, help='dropout rate')
 	parser.add_argument(
-		'--vis', '-v', required=False, type=bool,
-		metavar='<string>', default=None, help='visualization')
+		'--vis', '-v', required=False, action='store_true',
+		default=False, help='visualization')
 	
 	arg = parser.parse_args()
 	
@@ -281,10 +282,6 @@ if __name__ == '__main__':
 	
 	df['norm_frag'] = df.xyz_set.apply(normalize_frag)
 	df['dmatrix'] = df.xyz_set.apply(distance_matrix)
-
-	#print(len(df.xyz_set[0]), (df.norm_frag[1]))
-	#print(df.iloc[0])
-	#sys.exit()
 	
 	fshape = df.norm_frag[0].shape[0]
 	dshape = df.dmatrix[0].shape[0]
@@ -323,16 +320,6 @@ if __name__ == '__main__':
 	# Set the data loaders
 	train_coords = np.array(df.norm_frag[:trn].to_list())
 	test_coords  = np.array(df.norm_frag[trn:].to_list())
-
-
-	# pdb_writer(coords=df.xyz_set[trn], seq=df.fragment_seq[trn],
-	# 		   atoms=[df.fragment_type[trn][0]]*len(df.fragment_seq[trn]),
-	# 		   chain=[df.chain_id[trn][0]]*len(df.fragment_seq[trn]))
-
-	# print(df.xyz_set[trn], len(df.xyz_set[trn]))
-	# print(test_coords[0], len(test_coords[0]))
-
-	# sys.exit()
 	
 	train = data_utils.TensorDataset(
 		torch.Tensor(train_coords),
@@ -350,10 +337,9 @@ if __name__ == '__main__':
 	test_loader = data_utils.DataLoader(test, batch_size=1, shuffle=True)
 
 	print(df.norm_frag[trn], len(df.norm_frag[trn]))
-
 	
 	# Set loss and optimizer
-	criterion = nn.L1Loss()
+	criterion = nn.MSELoss()
 	optimizer = optim.Adam(
 		model_aefc.parameters(),
 		lr=arg.lrate,
@@ -369,17 +355,43 @@ if __name__ == '__main__':
 		device=device,
 		epochs=arg.epochs)
 
-	saved = model_aefc.forward(test[0][0])
-	# pdb_writer(coords=[saved[i:i+3] for i in range(0, len(saved),3)],
-	# 		   seq=df.fragment_seq[trn],
-	# 		   atoms=[df.fragment_type[trn][0]]*len(df.fragment_seq[trn]),
-	# 		   chain=[df.chain_id[trn][0]]*len(df.fragment_seq[trn]))
+	# visualization
+	if arg.vis:
+		# initial
+		before = pdb_writer(
+			coords=df.xyz_set[trn], seq=df.fragment_seq[trn],
+			atoms=[df.fragment_type[trn][0]] * len(df.fragment_seq[trn]),
+			chain=[df.chain_id[trn][0]] * len(df.fragment_seq[trn]))
+		# normalized
+		norm = pdb_writer(
+			coords=[df.norm_frag[trn][i:i + 3] for i in range(
+				0, len(df.norm_frag[trn]), 3)],
+			seq=df.fragment_seq[trn],
+			atoms=[df.fragment_type[trn][0]] * len(df.fragment_seq[trn]),
+			chain=[df.chain_id[trn][0]] * len(df.fragment_seq[trn]))
+		# normalized after training
+		saved = model_aefc.forward(test[0][0])
+		reconstructed = pdb_writer(
+			coords=[saved[i:i + 3] for i in range(0, len(saved), 3)],
+			seq=df.fragment_seq[trn],
+			atoms=[df.fragment_type[trn][0]] * len(df.fragment_seq[trn]),
+			chain=[df.chain_id[trn][0]] * len(df.fragment_seq[trn]))
+		
+		with open('./images/before.pdb', 'w') as fp:
+			fp.write(before)
+		fp.close()
+		with open('./images/norm.pdb', 'w') as fp:
+			fp.write(norm)
+		fp.close()
+		with open('./images/reconstructed.pdb', 'w') as fp:
+			fp.write(reconstructed)
+		fp.close()
 	
 	model_dyn_aefc = DynamicAEfc(
 		inshape=fshape,
-		dropouts=arg.dropout,
-		units=[128, 10, 128],
-		function_list=[relu, relu, relu]).to(device)
+		dropouts=[0.25] * 7,
+		units=[256, 128, 64, 16, 64, 128, 256],
+		function_list=[relu] * 7).to(device)
 	
 	s_dyn_aefc = summary(
 		model_dyn_aefc,
@@ -393,7 +405,7 @@ if __name__ == '__main__':
 	optimizer = optim.Adam(
 		model_dyn_aefc.parameters(),
 		lr=arg.lrate,
-		weight_decay=arg.l2)
+		weight_decay=1e-6)
 	
 	# Fit the model
 	model_dyn_aefc = fit_model(
@@ -447,25 +459,5 @@ if __name__ == '__main__':
 		test=test_loader,
 		optimizer=optimizer,
 		criterion=criterion,
-		epochs=arg.epochs,
+		epochs=10,
 		device=device)
-
-	#visualization
-	if arg.vis:
-			#print('Visualizer')
-		#initial
-		pdb_writer(coords=df.xyz_set[trn], seq=df.fragment_seq[trn],
-				   atoms=[df.fragment_type[trn][0]]*len(df.fragment_seq[trn]),
-				   chain=[df.chain_id[trn][0]]*len(df.fragment_seq[trn]))
-		#normalized
-		pdb_writer(coords=[df.norm_frag[trn][i:i+3] for i in range(0, len(df.norm_frag[trn]), 3)],
-				   seq=df.fragment_seq[trn],
-				   atoms=[df.fragment_type[trn][0]]*len(df.fragment_seq[trn]),
-				   chain=[df.chain_id[trn][0]]*len(df.fragment_seq[trn]))
-		#normalized after training
-		saved = model_aefc.forward(test[0][0])
-		pdb_writer(coords=[saved[i:i+3] for i in range(0, len(saved),3)],
-				   seq=df.fragment_seq[trn],
-				   atoms=[df.fragment_type[trn][0]]*len(df.fragment_seq[trn]),
-				   chain=[df.chain_id[trn][0]]*len(df.fragment_seq[trn]))
-		# Note: pic 1. how the frag look like, pic 2 (frag normalized before and after the model)

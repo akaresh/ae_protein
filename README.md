@@ -73,3 +73,34 @@ The repository has a Makefile to run style-checks, unit/functional tests, and ma
 + find places of low/high quality
 	+ use lDDt?
 
+## Equations for feature map sizes in Convolutions and Pooling ##
+
+* Conv2d
+	- in shape is (batch, channels, h, w)
+	- out shape is (batch, kernels, hout, wout)
+		- hout = (hin + 2*padding - ksize
+		- hout = (7 + 6 - 2)
+		- hout = (7 + 6 - 1)
+		
+		- hout = (7 - 1) (kernel=2 and no padding)
+		- hout = 6
+		
+		- hout = 6 - 2/2 + 1 = 3
+		- 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
