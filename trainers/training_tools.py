@@ -89,7 +89,6 @@ def fit_model(
 	criterion=None,
 	device=None,
 	epochs=None):
-	
 	"""
 	Fit function for all Torch Models
 	
@@ -215,89 +214,159 @@ def pdb_writer(atoms=None, seq=None, chain=None, coords=None):
 
 
 def conv_pool_out(hin, win, ksize=None, padding=None, stride=None):
-	hout = hin + 2 * padding[0] - ksize[0] + 1
+	"""
+	Compute resulting size of feature maps after convolution/pooling.
+	
+	Parameters
+	----------
+	* Positional args
+		hin: height of input feature matrix
+		win: width of input feature matrix
+	* Keyword args
+		ksize: tuple for kernel dimensions
+		padding: tuple of padding size for both dimensions
+		stride: tuple for stride step in each dimensions
+	
+	Returns
+	------
+	hout: resulting height of feature matrix
+	wout: resulting width of feature matrix
+	"""
+	assert(hin is not None and win is not None)
+	assert (ksize is not None and padding is not None and stride is not None)
+	assert(type(hin) == int and type(win) == int)
+	assert(
+		type(ksize) == tuple and
+		type(padding) == tuple and
+		type(stride) == tuple)
+	
+	for k, p, s in zip(ksize, padding, stride):
+		assert(type(k) == int and type(p) == int and type(s) == int)
+	
+	hout = hin + 2 * padding[0] - ksize[0]
 	hout /= stride[0]
+	hout += 1
 	
-	wout = win + 2 * padding[1] - ksize[1] + 1
+	wout = win + 2 * padding[1] - ksize[1]
 	wout /= stride[1]
+	wout += 1
 	
-	return hout, wout
+	if type(hout) != int or type(wout) != int: return None, None
+	else:                                      return hout, wout
 
 
 def convt_out(hin, win, ksize=None, padding=None, stride=None):
-	hout = (hin - 1) * stride[0] - 2 * padding[0] + ksize[0] - 1
-	wout = (win - 1) * stride[1] - 2 * padding[1] + ksize[1] - 1
+	"""
+	Compute resulting size of features after convolution transpose.
+	
+	Parameters
+	----------
+	* Positional args
+		hin: height of input feature matrix
+		win: width of input feature matrix
+	* Keyword args
+		ksize: tuple for kernel dimensions
+		padding: tuple of padding size for both dimensions
+		stride: tuple for stride step in each dimensions
+	
+	Returns
+	------
+	hout: resulting height of feature matrix
+	wout: resulting width of feature matrix 
+	"""
+	assert(hin is not None and win is not None)
+	assert (ksize is not None and padding is not None and stride is not None)
+	assert(type(hin) == int and type(win) == int)
+	assert(
+		type(ksize) == tuple and
+		type(padding) == tuple and
+		type(stride) == tuple)
+	
+	for k, p, s in zip(ksize, padding, stride):
+		assert(type(k) == int and type(p) == int and type(s) == int)
+	
+	hout = (hin - 1) * stride[0] - 2 * padding[0] + ksize[0]
+	wout = (win - 1) * stride[1] - 2 * padding[1] + ksize[1]
 	
 	return hout, wout
 
 
-def conv_validator(hin, win, ks=None, padding=None, stride=None):
+def encoder_validator(
+	hin, win,
+	conv_ks=None,
+	pool_ks=None,
+	conv_padding=None,
+	pool_padding=None,
+	conv_stride=None,
+	pool_stride=None):
+	"""
+	Validate proposed CNN layers produce valid dimensions for resulting feature
+	maps. 
+	
+	Parameters
+	----------
+	* Positional args
+		hin: height of input feature matrix
+		win: width of input feature matrix
+	* Keyword args
+		conv_ks: list of tuples for kernel dimensions at each CNN layer
+		pool_ks: list of tuples for pooling kernel sizes at each layer
+		conv_padding: padding dimensions each convolution layer
+		pool_padding: 
+	"""
 	print(hin, win)
 	h = hin
 	w = win
 	for k, p, s in zip(ks, padding, stride):
 		h, w = conv_pool_out(h, w, ksize=k, padding=p, stride=s)
 		print(h, w)
+		if h < 0 or w < 0: return False, None
 		h, w = conv_pool_out(h, w, ksize=k, padding=p, stride=s)
 		print(h, w)
+		if h < 0 or w < 0: return False, None
+	
+	return True, (h, w)
 
 
-def cont_validator():
-	pass
+def decoder_validator(hin, win, ks=None, padding=None, stride=None):
+	print(hin, win)
+	h = hin
+	w = win
+	for k, p, s in zip(ks, padding, stride):
+		h, w, = convt_out(h, w, ksize=k, padding=p, stride=s)
+		print('cont',h, w)
+		if h < 0 or w < 0: return False, None
+	
+	return True, (h, w)
 
 
-def cnn_validator():
-	conv_validatior()
-	cont_validator()
+def cnn_ae_validator(inshape=None, encoder=None, decoder=None):
+	hin, win = inshape
+	status, latent = conv_validator(
+		hin, win, ks=conv['kernels'], padding=conv['paddings'],
+		stride=conv['strides'])
+	if status:
+		status, out = cont_validator(
+			latent[0], latent[1], ks=convt['kernels'], padding=convt['paddings'],
+			stride=convt['strides'])
+		if status:
+			print(out)
+			out = (int(out[0]), int(out[1]))
+			if (int(hin), int(win)) == out: return True
+			else:                    return False
+	else: return False
+
 
 if __name__ == '__main__':
-	kernels = [(3,3), (3,3), (3,3)]
-	paddings = [(0,0), (0,0), (0,0)]
-	strides  = [(1,1), (1,1), (1,1)]
+	convd = {
+		'kernels'  : [(4,4), (4,4)],
+		'paddings' : [(1,1), (1,1)],
+		'strides'  : [(1,1), (1,1)]
+	}
+	convtd = {
+		'kernels': [(4,4), (4,4)],
+		'paddings' : [(0,0), (0,0)],
+		'strides'  : [(1,1), (1,1)]
+	}
 	
-	conv_validator(7, 7, ks=kernels, padding=paddings, stride=strides)
-	
-	"""
-	7,7 input
-	7,7 output
-	
-	max 20 layers encoding decoding
-	kernels max 7x7 min 2x2
-	strides 1, 6
-	padding ? max 7?
-	"""
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+	print(cnn_ae_validator(inputs=(7,7), conv=convd, convt=convtd))

@@ -41,51 +41,62 @@ class SimpleAEcnn(Module):
 		self.conv1 = nn.Conv2d(
 			in_channels=1,
 			out_channels=100,
-			kernel_size=2,
-			padding=1)
+			kernel_size=4,
+			padding=1,
+			stride=1)
 		
 		self.conv2 = nn.Conv2d(
 			in_channels=100,
 			out_channels=50,
-			kernel_size=2,
-			padding=1)
+			kernel_size=4,
+			padding=1,
+			stride=1)
 		
-		self.pool = nn.MaxPool2d(2, stride=1)
+		self.pool = nn.MaxPool2d(4, stride=1, padding=1)
 		
 		# decoder
 		self.convt1 = nn.ConvTranspose2d(
 			in_channels=50,
 			out_channels=100,
-			kernel_size=2,
-			stride=1)
+			kernel_size=3,
+			stride=1,
+			padding=0)
 		
 		self.convt2 = nn.ConvTranspose2d(
 			in_channels=100,
 			out_channels=1,
-			kernel_size=2,
-			stride=1)
+			kernel_size=3,
+			stride=1,
+			padding=0)
 		
 		self.dropout = Dropout(dropout) if dropout is not None else None
 	
 	def forward(self, features):
 		# conv1
+		print('in', features.shape)
 		x = self.conv1(features)
+		print('conv 1',x.shape)
 		x = relu(x)
 		x = self.pool(x)
+		print('pool 1',x.shape)
 		if self.dropout is not None: activate = self.dropout(x)
 		
 		# conv2
 		x = self.conv2(x)
+		print(x.shape)
 		x = relu(x)
 		x = self.pool(x)
+		print(x.shape)
 		if self.dropout is not None: activate = self.dropout(x)
 		
 		# convtranspose1
 		x = self.convt1(x)
+		print(x.shape)
 		x = relu(x)
 		
 		# convtranspose2
 		x = self.convt2(x)
+		print(x.shape)
 		reconstructed = relu(x)
 		
 		return reconstructed
@@ -418,6 +429,7 @@ if __name__ == '__main__':
 		device=device)
 	
 	model_aecnn = SimpleAEcnn(dropout=arg.dropout).to(device)
+	"""
 	s_aecnn = summary(
 		model_aecnn,
 		input_size=(arg.batchsize, 1, dshape, dshape),
@@ -426,7 +438,7 @@ if __name__ == '__main__':
 	su_aecnn = repr(s_aecnn)
 	print(su_aecnn.encode('utf-8').decode('latin-1'))
 	print()
-	
+	"""
 	# Set optimizer
 	optimizer = optim.Adam(
 		model_aecnn.parameters(),
@@ -436,7 +448,6 @@ if __name__ == '__main__':
 	# Set the data loaders
 	train_coords = np.array(df.dmatrix[:trn].to_list())
 	test_coords  = np.array(df.dmatrix[trn:].to_list())
-	
 	train = data_utils.TensorDataset(
 		torch.Tensor(train_coords),
 		torch.Tensor(train_coords))
