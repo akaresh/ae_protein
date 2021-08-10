@@ -268,23 +268,55 @@ class DynamicAEcnn(nn.Module):
 		channels=None,
 		function_list=None,
 		dropout=None,
-		maxpool_kernel=None,
-		maxpool_stride=None,
-		maxpool_padding=None,
-		convd_kernel=None,
-		convd_padding=None,
-		convd_stride=None,
-		convtd_kernel=None,
-		convtd_padding=None,
-		convtd_stride=None):
+		encoder = {
+			'maxpool_kernel': [4, 4],
+			'maxpool_stride': [1, 1],
+			'maxpool_padding': [1, 1],
+			'convd_kernel': [4, 4],
+			'convd_padding': [1, 1],
+			'convd_stride': [1, 1]},
+		decoder = {
+			'convtd_kernel': [3, 3],
+			'convtd_padding': [0, 0],
+			'convtd_stride': [1, 1]}
+		):
 		
-		assert(channels is not None and type(channels) == list)
+		
+		assert(channels is not None and type(channels) == list) 
 		assert(function_list is not None and type(function_list) == list)
-		assert(convd_kernel is not None and type(convd_kernel) == list)
-		assert(convtd_kernel is not None and type(convtd_kernel) == list)
-		assert(maxpool_kernel is not None and type(maxpool_kernel) == list)
-		assert(maxpool_padding is not None and type(maxpool_padding) == list)
-		assert(maxpool_stride is not None and type(maxpool_stride) == list)
+		
+		# maxpool check
+		#kernel
+		assert(encoder['maxpool_kernel'] is not None)
+		assert(type(encoder['maxpool_kernel']) == list)
+		# padding
+		assert(encoder['maxpool_padding'] is not None)
+		assert(type(encoder['maxpool_padding']) == list)
+		# stride
+		assert(encoder['maxpool_stride'] is not None)
+		assert(type(encoder['maxpool_stride']) == list)
+		
+		#conv2d check
+		#kernel
+		assert(encoder['convd_kernel'] is not None)
+		assert(type(encoder['convd_kernel']) == list)
+		#padding
+		assert(encoder['convd_padding'] is not None)
+		assert(type(encoder['convd_padding']) == list)
+		#stride
+		assert(encoder['convd_stride'] is not None)
+		assert(type(encoder['convd_stride']) == list)
+		
+		#conv transpose 2d
+		#kernel
+		assert(decoder['convtd_kernel'] is not None)
+		assert(type(decoder['convtd_kernel']) == list)
+		#padding
+		assert(decoder['convtd_padding'] is not None)
+		assert(type(decoder['convtd_padding']) == list)
+		#stride
+		assert(decoder['convtd_stride'] is not None)
+		assert(type(decoder['convtd_stride']) == list)
 		
 		super(DynamicAEcnn, self).__init__()
 		self.funs = function_list
@@ -294,14 +326,16 @@ class DynamicAEcnn(nn.Module):
 		
 		# maxpool check
 		self.maxpool = []
-		for k, s, p in zip(maxpool_kernel, maxpool_stride, maxpool_padding):
+		for k, s, p in zip(encoder['maxpool_kernel'], encoder['maxpool_stride'], 
+						   encoder['maxpool_padding']):
 			assert(k > 1 and s >= 1 and p >= 0)
 			self.maxpool.append(MaxPool2d(k, stride=s, padding=p))
 			
 		# Conv2d
 		self.conv2d = []
 		prev = 1
-		for c, k, s, p in zip(channels[:len(convd_kernel)+1], convd_kernel, convd_stride, convd_padding):
+		for c, k, s, p in zip(channels[:len(self.maxpool)+1], encoder['convd_kernel'], 
+							  encoder['convd_stride'], encoder['convd_padding']):
 			assert(c > 1 and k > 1 and s >= 1 and p >=0)
 			self.conv2d.append(
 				Conv2d(
@@ -310,7 +344,8 @@ class DynamicAEcnn(nn.Module):
 			prev = c
 			
 		self.convt2d = []
-		for c, k, s, p in zip(channels[len(self.conv2d):], convtd_kernel, convtd_stride, convtd_padding):
+		for c, k, s, p in zip(channels[len(self.conv2d):], decoder['convtd_kernel'], 
+							  decoder['convtd_stride'], decoder['convtd_padding']):
 			assert(c >= 1)
 			assert(k >= 1)
 			assert(s >= 1)
@@ -323,7 +358,6 @@ class DynamicAEcnn(nn.Module):
 		
 		if dropout is not None:
 			assert(type(dropout) == list)
-			print(len(dropout), len(self.conv2d))
 			assert(len(dropout) == len(self.conv2d))
 			self.dropout = []
 			for dp in dropout:
@@ -610,16 +644,7 @@ if __name__ == '__main__':
 	model_dyn_cnn = DynamicAEcnn(
 		channels=[100, 50, 100, 1], ###
 		function_list=[relu, relu, relu, relu], ###
-		dropout=[0.1, 0.1], ###
-		maxpool_kernel=[4, 4], 
-		maxpool_stride=[1, 1],
-		maxpool_padding=[1, 1],
-		convd_kernel=[4, 4],
-		convd_padding=[1, 1],
-		convd_stride=[1, 1],
-		convtd_kernel=[3, 3],
-		convtd_padding=[0, 0],
-		convtd_stride=[1, 1])
+		dropout=[0.1, 0.1])
 		
 		##encoder dic maxpool + convd
 		##decoder dict convt
