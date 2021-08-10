@@ -6,7 +6,7 @@
 import sys
 
 from torch import relu
-from torch.nn import Dropout, Linear, Module, ModuleList
+from torch.nn import Dropout, Linear, Module, ModuleList, Conv2d, MaxPool2d, ConvTranspose2d
 import torch.nn as nn
 
 
@@ -73,30 +73,30 @@ class SimpleAEcnn(Module):
 	
 	def forward(self, features):
 		# conv1
-		print('in', features.shape)
+		#print('in', features.shape)
 		x = self.conv1(features)
-		print('conv 1',x.shape)
+		#print('conv 1',x.shape)
 		x = relu(x)
 		x = self.pool(x)
-		print('pool 1',x.shape)
+		#print('pool 1',x.shape)
 		if self.dropout is not None: activate = self.dropout(x)
 		
 		# conv2
 		x = self.conv2(x)
-		print(x.shape)
+		#print(x.shape)
 		x = relu(x)
 		x = self.pool(x)
-		print(x.shape)
+		#print(x.shape)
 		if self.dropout is not None: activate = self.dropout(x)
 		
 		# convtranspose1
 		x = self.convt1(x)
-		print(x.shape)
+		#print(x.shape)
 		x = relu(x)
 		
 		# convtranspose2
 		x = self.convt2(x)
-		print(x.shape)
+		#print(x.shape)
 		reconstructed = relu(x)
 		
 		return reconstructed
@@ -241,6 +241,135 @@ class DynamicAEfc(Module):
 		return reconstructed
 
 
+class DynamicAEcnn(nn.Module):
+	"""
+	Class definition for AutoEncoder model with dynamic number of layers and
+	units per layer. All layers are Convolutional.
+	
+	Parameters
+	----------
+	units: list for units per layer, requred
+		list of units per layer, excluding size of input.
+	function_list: list for non-linear functions applied at each layer, requred
+		list of PyTorch non-linear functions to be applied at each layer.
+		len(function_list) needs to each length of units list.
+	dropouts: list of dropout probabilities per layer
+		Not required.
+		If specified, must be list of equal length to units and function_list.
+	
+	Returns
+	-------
+	AutoEncoder model, PyTorch nn.Module object
+	"""
+	# kernel size and stride
+	
+	def __init__(
+		self, 
+		channels=None,
+		function_list=None,
+		dropout=None,
+		maxpool_kernel=None,
+		maxpool_stride=None,
+		maxpool_padding=None,
+		convd_kernel=None,
+		convd_padding=None,
+		convd_stride=None,
+		convtd_kernel=None,
+		convtd_padding=None,
+		convtd_stride=None):
+		
+		assert(channels is not None and type(channels) == list)
+		assert(function_list is not None and type(function_list) == list)
+		assert(convd_kernel is not None and type(convd_kernel) == list)
+		assert(convtd_kernel is not None and type(convtd_kernel) == list)
+		assert(maxpool_kernel is not None and type(maxpool_kernel) == list)
+		assert(maxpool_padding is not None and type(maxpool_padding) == list)
+		assert(maxpool_stride is not None and type(maxpool_stride) == list)
+		
+		super(DynamicAEcnn, self).__init__()
+		self.funs = function_list
+		
+		# checking length of input
+		assert(len(channels) == len(function_list))
+		
+		# maxpool check
+		self.maxpool = []
+		for k, s, p in zip(maxpool_kernel, maxpool_stride, maxpool_padding):
+			assert(k > 1 and s >= 1 and p >= 0)
+			self.maxpool.append(MaxPool2d(k, stride=s, padding=p))
+			
+		# Conv2d
+		self.conv2d = []
+		prev = 1
+		for c, k, s, p in zip(channels[:len(convd_kernel)+1], convd_kernel, convd_stride, convd_padding):
+			assert(c > 1 and k > 1 and s >= 1 and p >=0)
+			self.conv2d.append(
+				Conv2d(
+					in_channels=prev, out_channels=c, kernel_size=k, stride=s, 
+					padding=p))
+			prev = c
+			
+		self.convt2d = []
+		for c, k, s, p in zip(channels[len(self.conv2d):], convtd_kernel, convtd_stride, convtd_padding):
+			assert(c >= 1)
+			assert(k >= 1)
+			assert(s >= 1)
+			assert(p >=0)
+			self.convt2d.append(
+				ConvTranspose2d(
+					in_channels=prev, out_channels=c, kernel_size=k, stride=s, 
+					padding=p))
+			prev = c
+		
+		if dropout is not None:
+			assert(type(dropout) == list)
+			print(len(dropout), len(self.conv2d))
+			assert(len(dropout) == len(self.conv2d))
+			self.dropout = []
+			for dp in dropout:
+				assert(dp < 1.0 and dp > 0.0)
+				self.dropout.append(Dropout(dp))
+		else: self.dropout = [None] * len(self.conv2d)
+		
+		self.conv2d = ModuleList(self.conv2d)
+		self.convt2d = ModuleList(self.convt2d)
+		#self.maxpool = ModuleList(self.)
+		
+		# self.parameters = nn.ParameterList(self.conv2d[0])
+# 		self.parameters.extend(nn.ParameterList(self.convt2d[0]))
+		
+	
+	def forward(self, x):
+		"""
+		Perform forward pass in the dynamic AutoEncoder model.
+		Use torchinfo.summary to find detailed summary of model.
+		"""
+		# CNN structure
+		# conv
+		# relu
+		# pool
+		# dropout
+		
+		#tranpose
+		#relu
+		
+		#conv2d layers
+		
+		for c, f, p, d in zip(self.conv2d, self.funs, self.maxpool, self.dropout):
+			x = c(x)
+			x = f(x)
+			x = p(x)
+			if d is not None: x = d(x)
+			
+		#convt2d layers
+		
+		for c, f in zip(self.convt2d, self.funs[len(self.conv2d):]):
+			x = c(x)
+			x = f(x)
+		
+		return x
+
+
 if __name__ == '__main__':
 	
 	import argparse
@@ -319,7 +448,7 @@ if __name__ == '__main__':
 	
 	# create a model from `AE` autoencoder class
 	# load it to the specified device, either gpu or cpu
-	
+	"""
 	model_aefc = SimpleAEfc(
 		inshape=fshape, dropout=arg.dropout).to(device)
 	s_aefc = summary(
@@ -430,6 +559,7 @@ if __name__ == '__main__':
 	
 	model_aecnn = SimpleAEcnn(dropout=arg.dropout).to(device)
 	"""
+	"""
 	s_aecnn = summary(
 		model_aecnn,
 		input_size=(arg.batchsize, 1, dshape, dshape),
@@ -439,11 +569,13 @@ if __name__ == '__main__':
 	print(su_aecnn.encode('utf-8').decode('latin-1'))
 	print()
 	"""
+	"""
 	# Set optimizer
 	optimizer = optim.Adam(
 		model_aecnn.parameters(),
 		lr=arg.lrate,
 		weight_decay=arg.l2)
+	"""
 	
 	# Set the data loaders
 	train_coords = np.array(df.dmatrix[:trn].to_list())
@@ -463,6 +595,7 @@ if __name__ == '__main__':
 	
 	test_loader = data_utils.DataLoader(test, batch_size=1, shuffle=True)
 	
+	"""
 	# Fit the model
 	model_aecnn = fit_model(
 		model_aecnn,
@@ -472,3 +605,42 @@ if __name__ == '__main__':
 		criterion=criterion,
 		epochs=10,
 		device=device)
+	"""
+	# Set the dynamic cnn
+	model_dyn_cnn = DynamicAEcnn(
+		channels=[100, 50, 100, 1], ###
+		function_list=[relu, relu, relu, relu], ###
+		dropout=[0.1, 0.1], ###
+		maxpool_kernel=[4, 4], 
+		maxpool_stride=[1, 1],
+		maxpool_padding=[1, 1],
+		convd_kernel=[4, 4],
+		convd_padding=[1, 1],
+		convd_stride=[1, 1],
+		convtd_kernel=[3, 3],
+		convtd_padding=[0, 0],
+		convtd_stride=[1, 1])
+		
+		##encoder dic maxpool + convd
+		##decoder dict convt
+		###options to not specify those arguments =  will be in the class's init fxn
+	
+	# Set the optimizer
+	# print(list(model_dyn_cnn.parameters()))
+# 	sys.exit()
+	criterion = nn.MSELoss()
+	optimizer = optim.Adam(
+		model_dyn_cnn.parameters(),
+		lr=arg.lrate,
+		weight_decay=arg.l2)
+	
+	# Fit the model
+	model_dyn_cnn = fit_model(
+		model_dyn_cnn,
+		train=train_loader,
+		test=test_loader,
+		optimizer=optimizer,
+		criterion=criterion,
+		epochs=10,
+		device=device)
+	

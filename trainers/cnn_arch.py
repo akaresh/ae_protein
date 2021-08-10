@@ -1,5 +1,6 @@
 from torch import relu
-from torch.nn import Dropout, Linear, Module, ModuleList
+from torch.nn import Dropout, Linear, Module, ModuleList, Conv2d, MaxPool2d
+from torch.nn import ConvTranspose2d
 
 
 class DynamicAEcnn(Module):
@@ -25,43 +26,70 @@ class DynamicAEcnn(Module):
 	# kernel size and stride
 	
 	def __init__(
-		self,
-		units=None,
+	
+		self, 
+		channels=None,
 		function_list=None,
-		dropouts=None,
-		maxpool=None):
+		dropout=None,
+		maxpool_kernel=None,
+		maxpool_stride=None,
+		maxpool_padding=None,
+		convd_kernel=None,
+		convd_padding=None,
+		convd_stride=None,
+		convtd_kernel=None,
+		convtd_padding=None,
+		convtd_stride=None):
 		
-		assert(units is not None and type(units) == list)
+		assert(channels is not None and type(channels) == list)
 		assert(function_list is not None and type(function_list) == list)
+		assert(convd_kernel is not None and type(kernel) == list)
+		assert(convtd_kernel is not None and type(kernel) == list)
+		assert(maxpool_kernel is not None and type(maxpool_kernel) == list)
+		assert(maxpool_padding is not None type(maxpool_padding) == list)
+		assert(maxpool_stride is not None type(maxpool_stride) == list)
 		
-		assert(len(units) == len(function_list))
+		super().__init__()
+		self.funs = [x() for x in function_list]
+		
+		# checking length of input
+		assert(len(channels) == len(function_list))
+		
+		# maxpool check
+		self.maxpool = []
+		for k, s, p in zip(maxpool_kernel, maxpool_stride, maxpool_padding):
+			assert(k > 1 and s >= 1 and p >= 0)
+			self.maxpool.append(MaxPool2d(k, stride=s, padding=p))
+			
+		# Conv2d
+		self.conv2d = []
+		prev = 1
+		for c, k, s, p in zip(channels[:len(convd_kernel)+1], convd_kernel, convd_stride, convd_padding):
+			assert(c > 1 and k > 1 and s >= 1 and p >=0)
+			self.conv2d.append(
+				Conv2d(
+					in_channels=prev, out_channels=c, convd_kernel=k, convd_stride=s, 
+					convd_padding=p))
+			prev = c
+			
+		self.convt2d = []
+		for c, k, s, p in zip(channels[len(self.conv2d):], convtd_kernel, convtd_stride, convtd_padding):
+			assert(c > 1 and k > 1 and s >= 1 and p >=0)
+			self.conv2d.append(
+				ConvTranspose2d(
+					in_channels=prev, out_channels=c, convd_kernel=k, convd_stride=s, 
+					convd_padding=p))
+			prev = c
 		
 		if dropout is not None:
 			assert(type(dropout) == list)
-			assert(len(dropout) == len(units))
+			assert(len(dropout) == len(self.conv2d))
 			self.dropout = []
 			for dp in dropout:
 				assert(dp < 1.0 and dp > 0.0)
 				self.dropout.append(Dropout(dp))
-		else: self.dropout = [None] * len(units)
+		else: self.dropout = [None] * len(self.conv2d)
 		
-		if maxpool is not None:
-			assert(type(maxpool) == list)
-			assert(len(maxpool) == units.count(nn.Conv2d))
-		else: self.maxpool = [None] * units.count(nn.Conv2d)
-		
-		super(DynamicAEcnn, self).__init__()
-		self.units = units
-		self.funs = [x() for x in function_list]
-		
-		self.layers = []
-		
-		prev = 1
-		for uu in units:
-			self.layers.append(Linear(prev, uu))
-			prev = uu
-		self.layers.append(prev, 1)
-		self.layers = ModuleList(self.layers)
 	
 	def forward(self, x):
 		"""
@@ -74,12 +102,21 @@ class DynamicAEcnn(Module):
 		# pool
 		# dropout
 		
-		out = x
-		for i in range(len(self.units) - 1):
-			out = self.layers[i](out)  # switches from conv2d to contranspose2d
-			out = self.funs[i](out)
-			if self.maxpool[i] is not None: out = self.maxpool[i](out)
-			if self.dropout[i] is not None: out = self.dropout[i](out)
-		reconstructed = self.funs[-1](out)
+		#tranpose
+		#relu
 		
-		return reconstructed
+		#conv2d layers
+		
+		for c, f, p, d in zip(self.conv2d, self.funs, self.maxpool, self.dropout):
+			x = c(x)
+			x = f(x)
+			x = p(x)
+			if d is not None: x = d(x)
+			
+		#convt2d layers
+		
+		for c, f in zip(self.convt2d, self.funs[len(self.conv2d):]):
+			x = c(x)
+			x = f(x)
+		
+		return x
