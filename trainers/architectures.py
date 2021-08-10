@@ -6,7 +6,8 @@
 import sys
 
 from torch import relu
-from torch.nn import Dropout, Linear, Module, ModuleList, Conv2d, MaxPool2d, ConvTranspose2d
+from torch.nn import Dropout, Linear, Module, ModuleList, Conv2d, MaxPool2d
+from torch.nn import ConvTranspose2d
 import torch.nn as nn
 
 
@@ -264,25 +265,26 @@ class DynamicAEcnn(nn.Module):
 	# kernel size and stride
 	
 	def __init__(
-		self, 
+		self,
 		channels=None,
 		function_list=None,
 		dropout=None,
-		encoder = {
+		encoder={
 			'maxpool_kernel': [4, 4],
 			'maxpool_stride': [1, 1],
 			'maxpool_padding': [1, 1],
 			'convd_kernel': [4, 4],
 			'convd_padding': [1, 1],
-			'convd_stride': [1, 1]},
-		decoder = {
+			'convd_stride': [1, 1]
+		},
+		decoder={
 			'convtd_kernel': [3, 3],
 			'convtd_padding': [0, 0],
-			'convtd_stride': [1, 1]}
-		):
+			'convtd_stride': [1, 1]
+		}
+	):
 		
-		
-		assert(channels is not None and type(channels) == list) 
+		assert(channels is not None and type(channels) == list)
 		assert(function_list is not None and type(function_list) == list)
 		
 		# maxpool check
@@ -326,34 +328,53 @@ class DynamicAEcnn(nn.Module):
 		
 		# maxpool check
 		self.maxpool = []
-		for k, s, p in zip(encoder['maxpool_kernel'], encoder['maxpool_stride'], 
-						   encoder['maxpool_padding']):
+		for k, s, p in zip(
+						encoder['maxpool_kernel'],
+						encoder['maxpool_stride'],
+						encoder['maxpool_padding']
+						):
 			assert(k > 1 and s >= 1 and p >= 0)
 			self.maxpool.append(MaxPool2d(k, stride=s, padding=p))
 			
 		# Conv2d
 		self.conv2d = []
 		prev = 1
-		for c, k, s, p in zip(channels[:len(self.maxpool)+1], encoder['convd_kernel'], 
-							  encoder['convd_stride'], encoder['convd_padding']):
-			assert(c > 1 and k > 1 and s >= 1 and p >=0)
+		for c, k, s, p in zip(
+							channels[:len(self.maxpool)+1],
+							encoder['convd_kernel'],
+							encoder['convd_stride'],
+							encoder['convd_padding']
+							):
+			assert(c > 1 and k > 1 and s >= 1 and p >= 0)
 			self.conv2d.append(
 				Conv2d(
-					in_channels=prev, out_channels=c, kernel_size=k, stride=s, 
-					padding=p))
+					in_channels=prev,
+					out_channels=c,
+					kernel_size=k,
+					stride=s,
+					padding=p)
+					)
 			prev = c
 			
 		self.convt2d = []
-		for c, k, s, p in zip(channels[len(self.conv2d):], decoder['convtd_kernel'], 
-							  decoder['convtd_stride'], decoder['convtd_padding']):
+		for c, k, s, p in zip(
+							channels[len(self.conv2d):],
+							decoder['convtd_kernel'],
+							decoder['convtd_stride'],
+							decoder['convtd_padding']
+							):
 			assert(c >= 1)
 			assert(k >= 1)
 			assert(s >= 1)
-			assert(p >=0)
+			assert(p >= 0)
 			self.convt2d.append(
 				ConvTranspose2d(
-					in_channels=prev, out_channels=c, kernel_size=k, stride=s, 
-					padding=p))
+								in_channels=prev,
+								out_channels=c,
+								kernel_size=k,
+								stride=s,
+								padding=p)
+								)
 			prev = c
 		
 		if dropout is not None:
@@ -367,11 +388,6 @@ class DynamicAEcnn(nn.Module):
 		
 		self.conv2d = ModuleList(self.conv2d)
 		self.convt2d = ModuleList(self.convt2d)
-		#self.maxpool = ModuleList(self.)
-		
-		# self.parameters = nn.ParameterList(self.conv2d[0])
-# 		self.parameters.extend(nn.ParameterList(self.convt2d[0]))
-		
 	
 	def forward(self, x):
 		"""
@@ -642,17 +658,10 @@ if __name__ == '__main__':
 	"""
 	# Set the dynamic cnn
 	model_dyn_cnn = DynamicAEcnn(
-		channels=[100, 50, 100, 1], ###
-		function_list=[relu, relu, relu, relu], ###
+		channels=[100, 50, 100, 1],
+		function_list=[relu, relu, relu, relu],
 		dropout=[0.1, 0.1])
-		
-		##encoder dic maxpool + convd
-		##decoder dict convt
-		###options to not specify those arguments =  will be in the class's init fxn
-	
-	# Set the optimizer
-	# print(list(model_dyn_cnn.parameters()))
-# 	sys.exit()
+
 	criterion = nn.MSELoss()
 	optimizer = optim.Adam(
 		model_dyn_cnn.parameters(),
@@ -668,4 +677,3 @@ if __name__ == '__main__':
 		criterion=criterion,
 		epochs=10,
 		device=device)
-	
