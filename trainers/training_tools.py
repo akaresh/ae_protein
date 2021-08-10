@@ -13,6 +13,12 @@ import torch
 import Bio.Data.IUPACData as conv
 
 
+class Dict2Obj(object):
+	def __init__(self, dic):
+		for key in dic:
+			setattr(self, key, dic[key])
+
+
 def normalize_frag(frag):
 	"""
 	Normalize structural fragment coordinates
@@ -213,6 +219,37 @@ def pdb_writer(atoms=None, seq=None, chain=None, coords=None):
 	return pdb_str + connect_str
 
 
+def layers_list(dic):
+	"""
+	Unroll dictionary that defines an encoder/decoder into a list of
+	object containers for parameters in each layer.
+	`layers_list` enforces that all values in dictionary are the same size. 
+	
+	Input
+	-----
+	dic: Dictionary describing network layers. 
+	
+	Returns
+	-------
+	layers: list of objects for parameters per layer
+	"""
+	for v1 in dic.values():
+		for v2 in dic.values(): assert(len(v2) == len(v1))
+	
+	layers = []
+	kk = list(dic.keys())
+	size = len(dic[kk[0]])
+	for ii in range(size):
+		new = {}
+		for k, v in dic.items():
+			if k not in new: new[k] = None
+			new[k] = v[ii]
+		newobj = Dict2Obj(new)
+		layers.append(newobj)
+	
+	return layers
+
+
 def conv_pool_out(hin, win, ksize=None, padding=None, stride=None):
 	"""
 	Compute resulting size of feature maps after convolution/pooling.
@@ -251,8 +288,8 @@ def conv_pool_out(hin, win, ksize=None, padding=None, stride=None):
 	wout /= stride[1]
 	wout += 1
 	
-	if type(hout) != int or type(wout) != int: return None, None
-	else:                                      return hout, wout
+	if hout.is_integer() and wout.is_integer: return int(hout), int(wout)
+	else:                                     return None, None
 
 
 def convt_out(hin, win, ksize=None, padding=None, stride=None):
@@ -291,17 +328,10 @@ def convt_out(hin, win, ksize=None, padding=None, stride=None):
 	return hout, wout
 
 
-def encoder_validator(
-	hin, win,
-	conv_ks=None,
-	pool_ks=None,
-	conv_padding=None,
-	pool_padding=None,
-	conv_stride=None,
-	pool_stride=None):
+def encoder_validator(hin, win, layers=None):
 	"""
-	Validate proposed CNN layers produce valid dimensions for resulting feature
-	maps. 
+	Validate proposed encoder CNN layers produce valid dimensions for resulting
+	feature maps. 
 	
 	Parameters
 	----------
@@ -309,31 +339,65 @@ def encoder_validator(
 		hin: height of input feature matrix
 		win: width of input feature matrix
 	* Keyword args
-		conv_ks: list of tuples for kernel dimensions at each CNN layer
-		pool_ks: list of tuples for pooling kernel sizes at each layer
-		conv_padding: padding dimensions each convolution layer
-		pool_padding: 
+		layers: list of object containers holding parameters for each layer.
+	
+	Returns
+	-------
+	True/False if validation is successful or not
+	(h, w) height and width of resulting feature map 
 	"""
+	assert(layers is not None)
+	assert(type(hin) == int and type(win) == int)
+	
 	print(hin, win)
 	h = hin
 	w = win
-	for k, p, s in zip(ks, padding, stride):
-		h, w = conv_pool_out(h, w, ksize=k, padding=p, stride=s)
+	for l in layers:
+		h, w = conv_pool_out(h, w, 
+			ksize=l.conv_ks,
+			padding=l.conv_paddings,
+			stride=l.conv_strides)
 		print(h, w)
 		if h < 0 or w < 0: return False, None
-		h, w = conv_pool_out(h, w, ksize=k, padding=p, stride=s)
+		h, w = conv_pool_out(h, w,
+			ksize=l.pool_ks,
+			padding=l.pool_paddings,
+			stride=l.pool_strides)
 		print(h, w)
 		if h < 0 or w < 0: return False, None
 	
 	return True, (h, w)
 
 
-def decoder_validator(hin, win, ks=None, padding=None, stride=None):
+def decoder_validator(hin, win, layers=None):
+	"""
+	Validate proposed decoder CNN layers produce valide dimensions for resulting
+	feature maps.
+	
+	Parameters
+	----------
+	* Positional args
+		hin: height of input feature matrix
+		win: width of input feature matrix
+	* Keyword args
+		layers: list of object containers holding parameters for each layer.
+	
+	Returns
+	-------
+	True/False if validation is successful or not
+	(h, w) height and width of resulting feature map
+	"""
+	assert(type(hin) == int and type(win) == int)
+	assert(layers is not None)
+	
 	print(hin, win)
 	h = hin
 	w = win
-	for k, p, s in zip(ks, padding, stride):
-		h, w, = convt_out(h, w, ksize=k, padding=p, stride=s)
+	for l in layers:
+		h, w, = convt_out(h, w,
+			ksize=l.convt_ks,
+			padding=l.convt_paddings,
+			stride=l.convt_strides)
 		print('cont',h, w)
 		if h < 0 or w < 0: return False, None
 	
@@ -342,31 +406,33 @@ def decoder_validator(hin, win, ks=None, padding=None, stride=None):
 
 def cnn_ae_validator(inshape=None, encoder=None, decoder=None):
 	hin, win = inshape
-	status, latent = conv_validator(
-		hin, win, ks=conv['kernels'], padding=conv['paddings'],
-		stride=conv['strides'])
+	encoder_layers = layers_list(encoder)
+	decoder_layers = layers_list(decoder)
+	status, latent = encoder_validator(hin, win, layers=encoder_layers)
 	if status:
-		status, out = cont_validator(
-			latent[0], latent[1], ks=convt['kernels'], padding=convt['paddings'],
-			stride=convt['strides'])
+		status, out = decoder_validator(
+			latent[0], latent[1], layers=decoder_layers)
 		if status:
 			print(out)
 			out = (int(out[0]), int(out[1]))
 			if (int(hin), int(win)) == out: return True
-			else:                    return False
+			else:                           return False
 	else: return False
 
 
 if __name__ == '__main__':
 	convd = {
-		'kernels'  : [(4,4), (4,4)],
-		'paddings' : [(1,1), (1,1)],
-		'strides'  : [(1,1), (1,1)]
+		'conv_ks'       : [(4,4), (4,4)],
+		'pool_ks'       : [(4,4), (4,4)],
+		'conv_paddings' : [(1,1), (1,1)],
+		'pool_paddings' : [(1,1), (1,1)],
+		'conv_strides'  : [(1,1), (1,1)],
+		'pool_strides'  : [(1,1), (1,1)]
 	}
 	convtd = {
-		'kernels': [(4,4), (4,4)],
-		'paddings' : [(0,0), (0,0)],
-		'strides'  : [(1,1), (1,1)]
+		'convt_ks'       : [(3,3), (3,3)],
+		'convt_paddings' : [(0,0), (0,0)],
+		'convt_strides'  : [(1,1), (1,1)]
 	}
 	
-	print(cnn_ae_validator(inputs=(7,7), conv=convd, convt=convtd))
+	print(cnn_ae_validator(inshape=(7,7), encoder=convd, decoder=convtd))
