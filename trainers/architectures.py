@@ -329,8 +329,8 @@ class DynamicAEcnn(nn.Module):
 		# maxpool check
 		self.maxpool = []
 		for k, s, p in zip(
-						encoder['maxpool_kernel'], encoder['maxpool_stride'],
-						encoder['maxpool_padding']):
+			encoder['maxpool_kernel'], encoder['maxpool_stride'],
+			encoder['maxpool_padding']):
 			
 			assert(k > 1 and s >= 1 and p >= 0)
 			self.maxpool.append(MaxPool2d(k, stride=s, padding=p))
@@ -339,8 +339,8 @@ class DynamicAEcnn(nn.Module):
 		self.conv2d = []
 		prev = 1
 		for c, k, s, p in zip(
-							channels[:len(self.maxpool) + 1], encoder['convd_kernel'],
-							encoder['convd_stride'], encoder['convd_padding']):
+			channels[:len(self.maxpool) + 1], encoder['convd_kernel'],
+			encoder['convd_stride'], encoder['convd_padding']):
 			
 			assert(c > 1 and k > 1 and s >= 1 and p >= 0)
 			self.conv2d.append(
@@ -349,28 +349,27 @@ class DynamicAEcnn(nn.Module):
 					out_channels=c,
 					kernel_size=k,
 					stride=s,
-					padding=p)
-					)
+					padding=p))
 			prev = c
 			
 		self.convt2d = []
 		for c, k, s, p in zip(
-							channels[len(self.conv2d):],
-							decoder['convtd_kernel'],
-							decoder['convtd_stride'],
-							decoder['convtd_padding']):
+			channels[len(self.conv2d):],
+			decoder['convtd_kernel'],
+			decoder['convtd_stride'],
+			decoder['convtd_padding']):
+			
 			assert(c >= 1)
 			assert(k >= 1)
 			assert(s >= 1)
 			assert(p >= 0)
 			self.convt2d.append(
 				ConvTranspose2d(
-								in_channels=prev,
-								out_channels=c,
-								kernel_size=k,
-								stride=s,
-								padding=p)
-								)
+					in_channels=prev,
+					out_channels=c,
+					kernel_size=k,
+					stride=s,
+					padding=p))
 			prev = c
 		
 		if dropout is not None:
