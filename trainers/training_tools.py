@@ -404,6 +404,19 @@ def decoder_validator(hin, win, layers=None):
 	return True, (h, w)
 
 
+def encoder_template():
+	template = {
+		'conv_ks'       : [(1, 1)],
+		'pool_ks'       : [(1, 1)],
+		'conv_paddings' : [(0, 0)],
+		'pool_paddings' : [(0, 0)],
+		'conv_strides'  : [(1, 1)],
+		'pool_strides'  : [(1, 1)]
+	}
+	
+	return template
+
+
 def cnn_ae_validator(inshape=None, encoder=None, decoder=None):
 	hin, win = inshape
 	encoder_layers = layers_list(encoder)
