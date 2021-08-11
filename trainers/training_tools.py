@@ -13,10 +13,30 @@ import torch
 import Bio.Data.IUPACData as conv
 
 
+encoder_template = {
+	'conv_ks'       : (1, 1),
+	'pool_ks'       : (1, 1),
+	'conv_paddings' : (0, 0),
+	'pool_paddings' : (0, 0),
+	'conv_strides'  : (1, 1),
+	'pool_strides'  : (1, 1)
+}
+
+
+decoder_template = {
+	'convt_ks'       : (1, 1),
+	'convt_strides'  : (1, 1),
+	'convt_paddings' : (0, 0)
+}
+
+
 class Dict2Obj(object):
-	def __init__(self, dic):
+	def __init__(self, dic, template):
 		for key in dic:
 			setattr(self, key, dic[key])
+		for key in template:
+			if hasattr(self, key): continue
+			setattr(self, key, template[key])
 
 
 def normalize_frag(frag):
@@ -219,7 +239,7 @@ def pdb_writer(atoms=None, seq=None, chain=None, coords=None):
 	return pdb_str + connect_str
 
 
-def layers_list(dic):
+def layers_list(dic, template):
 	"""
 	Unroll dictionary that defines an encoder/decoder into a list of
 	object containers for parameters in each layer.
@@ -244,7 +264,7 @@ def layers_list(dic):
 		for k, v in dic.items():
 			if k not in new: new[k] = None
 			new[k] = v[ii]
-		newobj = Dict2Obj(new)
+		newobj = Dict2Obj(new, template)
 		layers.append(newobj)
 	
 	return layers
@@ -404,23 +424,10 @@ def decoder_validator(hin, win, layers=None):
 	return True, (h, w)
 
 
-def encoder_template():
-	template = {
-		'conv_ks'       : [(1, 1)],
-		'pool_ks'       : [(1, 1)],
-		'conv_paddings' : [(0, 0)],
-		'pool_paddings' : [(0, 0)],
-		'conv_strides'  : [(1, 1)],
-		'pool_strides'  : [(1, 1)]
-	}
-	
-	return template
-
-
 def cnn_ae_validator(inshape=None, encoder=None, decoder=None):
 	hin, win = inshape
-	encoder_layers = layers_list(encoder)
-	decoder_layers = layers_list(decoder)
+	encoder_layers = layers_list(encoder, encoder_template)
+	decoder_layers = layers_list(decoder, decoder_template)
 	status, latent = encoder_validator(hin, win, layers=encoder_layers)
 	if status:
 		status, out = decoder_validator(
@@ -439,12 +446,10 @@ if __name__ == '__main__':
 		'pool_ks'       : [(4,4), (4,4)],
 		'conv_paddings' : [(1,1), (1,1)],
 		'pool_paddings' : [(1,1), (1,1)],
-		'conv_strides'  : [(1,1), (1,1)],
 		'pool_strides'  : [(1,1), (1,1)]
 	}
 	convtd = {
 		'convt_ks'       : [(3,3), (3,3)],
-		'convt_paddings' : [(0,0), (0,0)],
 		'convt_strides'  : [(1,1), (1,1)]
 	}
 	
