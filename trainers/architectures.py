@@ -74,30 +74,30 @@ class SimpleAEcnn(Module):
 	
 	def forward(self, features):
 		# conv1
-		#print('in', features.shape)
+		# print('in', features.shape)
 		x = self.conv1(features)
-		#print('conv 1',x.shape)
+		# print('conv 1',x.shape)
 		x = relu(x)
 		x = self.pool(x)
-		#print('pool 1',x.shape)
+		# print('pool 1',x.shape)
 		if self.dropout is not None: activate = self.dropout(x)
 		
 		# conv2
 		x = self.conv2(x)
-		#print(x.shape)
+		# print(x.shape)
 		x = relu(x)
 		x = self.pool(x)
-		#print(x.shape)
+		# print(x.shape)
 		if self.dropout is not None: activate = self.dropout(x)
 		
 		# convtranspose1
 		x = self.convt1(x)
-		#print(x.shape)
+		# print(x.shape)
 		x = relu(x)
 		
 		# convtranspose2
 		x = self.convt2(x)
-		#print(x.shape)
+		# print(x.shape)
 		reconstructed = relu(x)
 		
 		return reconstructed
@@ -288,7 +288,7 @@ class DynamicAEcnn(nn.Module):
 		assert(function_list is not None and type(function_list) == list)
 		
 		# maxpool check
-		#kernel
+		# kernel
 		assert(encoder['maxpool_kernel'] is not None)
 		assert(type(encoder['maxpool_kernel']) == list)
 		# padding
@@ -298,25 +298,25 @@ class DynamicAEcnn(nn.Module):
 		assert(encoder['maxpool_stride'] is not None)
 		assert(type(encoder['maxpool_stride']) == list)
 		
-		#conv2d check
-		#kernel
+		# conv2d check
+		# kernel
 		assert(encoder['convd_kernel'] is not None)
 		assert(type(encoder['convd_kernel']) == list)
-		#padding
+		# padding
 		assert(encoder['convd_padding'] is not None)
 		assert(type(encoder['convd_padding']) == list)
-		#stride
+		# stride
 		assert(encoder['convd_stride'] is not None)
 		assert(type(encoder['convd_stride']) == list)
 		
-		#conv transpose 2d
-		#kernel
+		# conv transpose 2d
+		# kernel
 		assert(decoder['convtd_kernel'] is not None)
 		assert(type(decoder['convtd_kernel']) == list)
-		#padding
+		# padding
 		assert(decoder['convtd_padding'] is not None)
 		assert(type(decoder['convtd_padding']) == list)
-		#stride
+		# stride
 		assert(decoder['convtd_stride'] is not None)
 		assert(type(decoder['convtd_stride']) == list)
 		
@@ -329,10 +329,9 @@ class DynamicAEcnn(nn.Module):
 		# maxpool check
 		self.maxpool = []
 		for k, s, p in zip(
-						encoder['maxpool_kernel'],
-						encoder['maxpool_stride'],
-						encoder['maxpool_padding']
-						):
+						encoder['maxpool_kernel'], encoder['maxpool_stride'],
+						encoder['maxpool_padding']):
+			
 			assert(k > 1 and s >= 1 and p >= 0)
 			self.maxpool.append(MaxPool2d(k, stride=s, padding=p))
 			
@@ -340,11 +339,9 @@ class DynamicAEcnn(nn.Module):
 		self.conv2d = []
 		prev = 1
 		for c, k, s, p in zip(
-							channels[:len(self.maxpool)+1],
-							encoder['convd_kernel'],
-							encoder['convd_stride'],
-							encoder['convd_padding']
-							):
+							channels[:len(self.maxpool) + 1], encoder['convd_kernel'],
+							encoder['convd_stride'], encoder['convd_padding']):
+			
 			assert(c > 1 and k > 1 and s >= 1 and p >= 0)
 			self.conv2d.append(
 				Conv2d(
@@ -361,8 +358,7 @@ class DynamicAEcnn(nn.Module):
 							channels[len(self.conv2d):],
 							decoder['convtd_kernel'],
 							decoder['convtd_stride'],
-							decoder['convtd_padding']
-							):
+							decoder['convtd_padding']):
 			assert(c >= 1)
 			assert(k >= 1)
 			assert(s >= 1)
@@ -394,25 +390,15 @@ class DynamicAEcnn(nn.Module):
 		Perform forward pass in the dynamic AutoEncoder model.
 		Use torchinfo.summary to find detailed summary of model.
 		"""
-		# CNN structure
-		# conv
-		# relu
-		# pool
-		# dropout
-		
-		#tranpose
-		#relu
-		
-		#conv2d layers
-		
+
+		# conv2d layers
 		for c, f, p, d in zip(self.conv2d, self.funs, self.maxpool, self.dropout):
 			x = c(x)
 			x = f(x)
 			x = p(x)
 			if d is not None: x = d(x)
 			
-		#convt2d layers
-		
+		# convt2d layers
 		for c, f in zip(self.convt2d, self.funs[len(self.conv2d):]):
 			x = c(x)
 			x = f(x)
