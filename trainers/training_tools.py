@@ -12,7 +12,7 @@ from scipy.spatial.distance import cdist
 import torch
 import Bio.Data.IUPACData as conv
 
-
+# Dictionary for default values for convolutions in encoder networks
 encoder_template = {
 	'conv_ks'       : (1, 1),
 	'pool_ks'       : (1, 1),
@@ -23,6 +23,7 @@ encoder_template = {
 }
 
 
+# Dictionary for default values for convolution-transposes in decoder networks
 decoder_template = {
 	'convt_ks'       : (1, 1),
 	'convt_strides'  : (1, 1),
@@ -31,6 +32,23 @@ decoder_template = {
 
 
 class Dict2Obj(object):
+	"""
+	Simple class to turn a dictionary to an object.
+	Useful for named attributes in convolution/convolution-transpose size
+	calculations.
+	
+	Inputs
+	------
+	dic:      dictionary to object-ize.
+	template: dictionary for default values.
+		template dictionary is different dependening on convolution or
+		convolution transpose. Only keys in template not in dic are added as
+		object attributes.
+	
+	Returns
+	------
+	obj: obj with named attributes from input dictionary keys.
+	"""
 	def __init__(self, dic, template):
 		for key in dic:
 			setattr(self, key, dic[key])
@@ -243,11 +261,12 @@ def layers_list(dic, template):
 	"""
 	Unroll dictionary that defines an encoder/decoder into a list of
 	object containers for parameters in each layer.
-	`layers_list` enforces that all values in dictionary are the same size. 
+	`layers_list` enforces that all values in dictionary are the same size.
 	
 	Input
 	-----
-	dic: Dictionary describing network layers. 
+	dic: Dictionary describing network layers.
+	template: template dictionary with default values for parameters.
 	
 	Returns
 	-------
@@ -280,9 +299,9 @@ def conv_pool_out(hin, win, ksize=None, padding=None, stride=None):
 		hin: height of input feature matrix
 		win: width of input feature matrix
 	* Keyword args
-		ksize: tuple for kernel dimensions
+		ksize:   tuple for kernel dimensions
 		padding: tuple of padding size for both dimensions
-		stride: tuple for stride step in each dimensions
+		stride:  tuple for stride step in each dimensions
 	
 	Returns
 	------
@@ -308,8 +327,8 @@ def conv_pool_out(hin, win, ksize=None, padding=None, stride=None):
 	wout /= stride[1]
 	wout += 1
 	
-	if hout.is_integer() and wout.is_integer: return int(hout), int(wout)
-	else:                                     return None, None
+	if hout.is_integer() and wout.is_integer  : return int(hout), int(wout)
+	else                                      : return None, None
 
 
 def convt_out(hin, win, ksize=None, padding=None, stride=None):
@@ -322,9 +341,9 @@ def convt_out(hin, win, ksize=None, padding=None, stride=None):
 		hin: height of input feature matrix
 		win: width of input feature matrix
 	* Keyword args
-		ksize: tuple for kernel dimensions
+		ksize:   tuple for kernel dimensions
 		padding: tuple of padding size for both dimensions
-		stride: tuple for stride step in each dimensions
+		stride:  tuple for stride step in each dimensions
 	
 	Returns
 	------
@@ -425,6 +444,20 @@ def decoder_validator(hin, win, layers=None):
 
 
 def cnn_ae_validator(inshape=None, encoder=None, decoder=None):
+	"""
+	Validate full CNN model for autoencoder architectures. 
+	
+	Parameters:
+	inshape: tuple of input matrix dimensions
+	encoder: dictionary of lists describing parameters for convolutions in
+		encoder half.
+	decoder: dictionary of lists describing parameters for convolution
+		transposes in decoder half. 
+	
+	Returns:
+	True if network specified is a valid CNN and autoencoder. 
+	False otherwise
+	"""
 	hin, win = inshape
 	encoder_layers = layers_list(encoder, encoder_template)
 	decoder_layers = layers_list(decoder, decoder_template)
@@ -441,6 +474,7 @@ def cnn_ae_validator(inshape=None, encoder=None, decoder=None):
 
 
 if __name__ == '__main__':
+	# Test validator functions
 	convd = {
 		'conv_ks'       : [(4,4), (4,4)],
 		'pool_ks'       : [(4,4), (4,4)],
