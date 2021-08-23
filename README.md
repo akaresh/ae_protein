@@ -35,15 +35,19 @@
 
 ## Priorities ##
 
-2.  Add tests to architectures.py in main
-	 - using pytest
-5.  document all functions and classes
-7.  more efficient fragment cosntruction method
-8.  make method for c-beta extended
-9.  add fragment method for bb+sc
-13. Build more informative README
-	 - include file hiearchy
-	 - how to use
+1. Make validator scripts work with CNN models we built.
+	- take in encoder/decoder dictionaries
+	- fill in missing keys with default values
+	- reject encoder/decoder dictionaries with disallowed keys
+2. more efficient fragment construction
+3. method for c-beta extended
+4. document all functions 
+5. make more informative README
+6. add tests in /tests with pytest
+	- test fragment construction
+	- test validators
+	- test training_tools helper functions
+	- test architectures
 
 ## Development Guide ##
 
@@ -73,20 +77,9 @@ The repository has a Makefile to run style-checks, unit/functional tests, and ma
 + find places of low/high quality
 	+ use lDDt?
 
-## Equations for feature map sizes in Convolutions and Pooling ##
-
-* Conv2d
-	- in shape is (batch, channels, h, w)
-	- out shape is (batch, kernels, hout, wout)
-		- hout = (hin + 2*padding - ksize
-		- hout = (7 + 6 - 2)
-		- hout = (7 + 6 - 1)
-		
-		- hout = (7 - 1) (kernel=2 and no padding)
-		- hout = 6
-		
-		- hout = 6 - 2/2 + 1 = 3
-		- 
+## Architecture Options ##
+1. efficientnet
+ 
 
 
 

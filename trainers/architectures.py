@@ -245,19 +245,32 @@ class DynamicAEfc(Module):
 class DynamicAEcnn(nn.Module):
 	"""
 	Class definition for AutoEncoder model with dynamic number of layers and
-	units per layer. All layers are Convolutional.
+	units per layer. All layers are Convolutional
 	
 	Parameters
 	----------
-	units: list for units per layer, requred
-		list of units per layer, excluding size of input.
+	channels: list of filters per layer
 	function_list: list for non-linear functions applied at each layer, requred
-		list of PyTorch non-linear functions to be applied at each layer.
-		len(function_list) needs to each length of units list.
+		list of PyTorch non-linear functions to be applied at each layer
+		len(function_list) needs to each length of units list
 	dropouts: list of dropout probabilities per layer
-		Not required.
-		If specified, must be list of equal length to units and function_list.
-	
+		Not required
+		If specified, must be list of equal length to units and function_list
+	encoder: dictionary defining parameters for Con2d operations in the encoder
+		layers 
+		__keywords__:
+			* conv_ks: kernel size for Conv2d
+			* pool_ks: kernel size for MaxPool2d
+			* conv_strides: stride for Conv2d
+			* pool_strides: stride for MaxPool2d
+			* conv_paddings: padding for Conv2d
+			* pool_paddings: padding for MaxPool2d
+	decoder: dictionary defining Conv-Transpose2d operations in the decoder
+		layers
+		__keywords__:
+			* convt_ks: kernel size for ConvTranspose2d
+			* convt_strides: stride for ConvTranspose2d
+			* convt_paddings: padding for ConvTranspose2d
 	Returns
 	-------
 	AutoEncoder model, PyTorch nn.Module object
@@ -270,17 +283,17 @@ class DynamicAEcnn(nn.Module):
 		function_list=None,
 		dropout=None,
 		encoder={
-			'maxpool_kernel': [4, 4],
-			'maxpool_stride': [1, 1],
-			'maxpool_padding': [1, 1],
-			'convd_kernel': [4, 4],
-			'convd_padding': [1, 1],
-			'convd_stride': [1, 1]
+			'pool_ks': [4, 4],
+			'pool_strides': [1, 1],
+			'pool_paddings': [1, 1],
+			'convd_ks': [4, 4],
+			'conv_paddings': [1, 1],
+			'convd_strides': [1, 1]
 		},
 		decoder={
-			'convtd_kernel': [3, 3],
-			'convtd_padding': [0, 0],
-			'convtd_stride': [1, 1]
+			'convtd_ks': [3, 3],
+			'convtd_paddings': [0, 0],
+			'convtd_strides': [1, 1]
 		}
 	):
 		
@@ -289,36 +302,36 @@ class DynamicAEcnn(nn.Module):
 		
 		# maxpool check
 		# kernel
-		assert(encoder['maxpool_kernel'] is not None)
-		assert(type(encoder['maxpool_kernel']) == list)
+		assert(encoder['pool_ks'] is not None)
+		assert(type(encoder['pool_ks']) == list)
 		# padding
-		assert(encoder['maxpool_padding'] is not None)
-		assert(type(encoder['maxpool_padding']) == list)
+		assert(encoder['pool_paddings'] is not None)
+		assert(type(encoder['pool_paddings']) == list)
 		# stride
-		assert(encoder['maxpool_stride'] is not None)
-		assert(type(encoder['maxpool_stride']) == list)
+		assert(encoder['pool_strides'] is not None)
+		assert(type(encoder['pool_strides']) == list)
 		
 		# conv2d check
 		# kernel
-		assert(encoder['convd_kernel'] is not None)
-		assert(type(encoder['convd_kernel']) == list)
+		assert(encoder['convd_ks'] is not None)
+		assert(type(encoder['convd_ks']) == list)
 		# padding
-		assert(encoder['convd_padding'] is not None)
-		assert(type(encoder['convd_padding']) == list)
+		assert(encoder['convd_paddings'] is not None)
+		assert(type(encoder['convd_paddings']) == list)
 		# stride
-		assert(encoder['convd_stride'] is not None)
-		assert(type(encoder['convd_stride']) == list)
+		assert(encoder['convd_strides'] is not None)
+		assert(type(encoder['convd_strides']) == list)
 		
 		# conv transpose 2d
 		# kernel
-		assert(decoder['convtd_kernel'] is not None)
-		assert(type(decoder['convtd_kernel']) == list)
+		assert(decoder['convtd_ks'] is not None)
+		assert(type(decoder['convtd_ks']) == list)
 		# padding
-		assert(decoder['convtd_padding'] is not None)
-		assert(type(decoder['convtd_padding']) == list)
+		assert(decoder['convtd_paddings'] is not None)
+		assert(type(decoder['convtd_paddings']) == list)
 		# stride
-		assert(decoder['convtd_stride'] is not None)
-		assert(type(decoder['convtd_stride']) == list)
+		assert(decoder['convtd_strides'] is not None)
+		assert(type(decoder['convtd_strides']) == list)
 		
 		super(DynamicAEcnn, self).__init__()
 		self.funs = function_list
