@@ -14,6 +14,7 @@ import Bio.Data.IUPACData as conv
 
 # Dictionary for default values for convolutions in encoder networks
 encoder_template = {
+	'channels'      : 1,
 	'conv_ks'       : (1, 1),
 	'pool_ks'       : (1, 1),
 	'conv_paddings' : (0, 0),
@@ -25,6 +26,7 @@ encoder_template = {
 
 # Dictionary for default values for convolution-transposes in decoder networks
 decoder_template = {
+	'channels'       : 1,
 	'convt_ks'       : (1, 1),
 	'convt_strides'  : (1, 1),
 	'convt_paddings' : (0, 0)
@@ -98,7 +100,7 @@ def normalize_frag(frag):
 		frag[i, 2] /= zf
 	
 	return frag[1:].flatten()
-	
+
 
 def distance_matrix(frag):
 	"""
@@ -175,7 +177,7 @@ def fit_model(
 			outputs = model.forward(batch_features)
 			
 			# compute training reconstruction loss
-			train_loss = torch.sqrt(criterion(outputs, batch_features))
+			train_loss = criterion(outputs, batch_features)
 			
 			# compute accumulated gradients
 			train_loss.backward()

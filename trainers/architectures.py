@@ -9,7 +9,8 @@ from torch import relu
 from torch.nn import Dropout, Linear, Module, ModuleList, Conv2d, MaxPool2d
 from torch.nn import ConvTranspose2d
 import torch.nn as nn
-
+from training_tools import layers_list, cnn_ae_validator
+from training_tools import encoder_template, decoder_template
 
 class SimpleAEcnn(Module):
 	"""
@@ -250,9 +251,6 @@ class DynamicAEcnn(nn.Module):
 	Parameters
 	----------
 	channels: list of filters per layer
-	function_list: list for non-linear functions applied at each layer, requred
-		list of PyTorch non-linear functions to be applied at each layer
-		len(function_list) needs to each length of units list
 	dropouts: list of dropout probabilities per layer
 		Not required
 		If specified, must be list of equal length to units and function_list
@@ -275,115 +273,60 @@ class DynamicAEcnn(nn.Module):
 	-------
 	AutoEncoder model, PyTorch nn.Module object
 	"""
-	# kernel size and stride
 	
 	def __init__(
 		self,
 		channels=None,
-		function_list=None,
 		dropout=None,
 		encoder={
-			'pool_ks': [4, 4],
-			'pool_strides': [1, 1],
-			'pool_paddings': [1, 1],
-			'convd_ks': [4, 4],
-			'conv_paddings': [1, 1],
-			'convd_strides': [1, 1]
+			'channels': [1],
+			'pool_ks': [(4, 4)],
+			'pool_strides': [(1, 1)],
+			'pool_paddings': [(1, 1)],
+			'convd_ks': [(4, 4)],
+			'conv_paddings': [(1, 1)],
+			'convd_strides': [(1, 1)]
 		},
 		decoder={
-			'convtd_ks': [3, 3],
-			'convtd_paddings': [0, 0],
-			'convtd_strides': [1, 1]
-		}
-	):
-		
-		assert(channels is not None and type(channels) == list)
-		assert(function_list is not None and type(function_list) == list)
-		
-		# maxpool check
-		# kernel
-		assert(encoder['pool_ks'] is not None)
-		assert(type(encoder['pool_ks']) == list)
-		# padding
-		assert(encoder['pool_paddings'] is not None)
-		assert(type(encoder['pool_paddings']) == list)
-		# stride
-		assert(encoder['pool_strides'] is not None)
-		assert(type(encoder['pool_strides']) == list)
-		
-		# conv2d check
-		# kernel
-		assert(encoder['convd_ks'] is not None)
-		assert(type(encoder['convd_ks']) == list)
-		# padding
-		assert(encoder['convd_paddings'] is not None)
-		assert(type(encoder['convd_paddings']) == list)
-		# stride
-		assert(encoder['convd_strides'] is not None)
-		assert(type(encoder['convd_strides']) == list)
-		
-		# conv transpose 2d
-		# kernel
-		assert(decoder['convtd_ks'] is not None)
-		assert(type(decoder['convtd_ks']) == list)
-		# padding
-		assert(decoder['convtd_paddings'] is not None)
-		assert(type(decoder['convtd_paddings']) == list)
-		# stride
-		assert(decoder['convtd_strides'] is not None)
-		assert(type(decoder['convtd_strides']) == list)
+			'channels': [1],
+			'convtd_ks': [(3, 3)],
+			'convtd_paddings': [(0, 0)],
+			'convtd_strides': [(1, 1)]
+		}):
 		
 		super(DynamicAEcnn, self).__init__()
-		self.funs = function_list
 		
-		# checking length of input
-		assert(len(channels) == len(function_list))
+		encoder_layers = layers_list(encoder, encoder_template)
+		decoder_layers = layers_list(decoder, decoder_template)
 		
-		# maxpool check
 		self.maxpool = []
-		for k, s, p in zip(
-			encoder['maxpool_kernel'], encoder['maxpool_stride'],
-			encoder['maxpool_padding']):
-			
-			assert(k > 1 and s >= 1 and p >= 0)
-			self.maxpool.append(MaxPool2d(k, stride=s, padding=p))
-			
-		# Conv2d
-		self.conv2d = []
-		prev = 1
-		for c, k, s, p in zip(
-			channels[:len(self.maxpool) + 1], encoder['convd_kernel'],
-			encoder['convd_stride'], encoder['convd_padding']):
-			
-			assert(c > 1 and k > 1 and s >= 1 and p >= 0)
+		self.conv2d  = []
+		prev=1
+		for layer in encoder_layers:
+			self.maxpool.append(
+				MaxPool2d(
+					layer.pool_ks,
+					stride=layer.pool_strides,
+					padding=layer.pool_paddings))
 			self.conv2d.append(
 				Conv2d(
 					in_channels=prev,
-					out_channels=c,
-					kernel_size=k,
-					stride=s,
-					padding=p))
-			prev = c
+					out_channels=layer.channels,
+					kernel_size=layer.conv_ks,
+					stride=layer.conv_strides,
+					padding=layer.conv_paddings))
+			prev = layer.channels
 			
 		self.convt2d = []
-		for c, k, s, p in zip(
-			channels[len(self.conv2d):],
-			decoder['convtd_kernel'],
-			decoder['convtd_stride'],
-			decoder['convtd_padding']):
-			
-			assert(c >= 1)
-			assert(k >= 1)
-			assert(s >= 1)
-			assert(p >= 0)
+		for layer in decoder_layers:
 			self.convt2d.append(
 				ConvTranspose2d(
 					in_channels=prev,
-					out_channels=c,
-					kernel_size=k,
-					stride=s,
-					padding=p))
-			prev = c
+					out_channels=layer.channels,
+					kernel_size=layer.convt_ks,
+					stride=layer.convt_strides,
+					padding=layer.convt_paddings))
+			prev = layer.channels
 		
 		if dropout is not None:
 			assert(type(dropout) == list)
@@ -404,16 +347,16 @@ class DynamicAEcnn(nn.Module):
 		"""
 
 		# conv2d layers
-		for c, f, p, d in zip(self.conv2d, self.funs, self.maxpool, self.dropout):
+		for c, p, d in zip(self.conv2d, self.maxpool, self.dropout):
 			x = c(x)
-			x = f(x)
+			x = relu(x)
 			x = p(x)
 			if d is not None: x = d(x)
 			
 		# convt2d layers
-		for c, f in zip(self.convt2d, self.funs[len(self.conv2d):]):
+		for c in self.convt2d:
 			x = c(x)
-			x = f(x)
+			x = relu(x)
 		
 		return x
 
@@ -472,13 +415,14 @@ if __name__ == '__main__':
 	df['dmatrix'] = df.xyz_set.apply(distance_matrix)
 	
 	fshape = df.norm_frag[0].shape[0]
-	dshape = df.dmatrix[0].shape[0]
-	
+	dshape = df.dmatrix[0].shape[1]
+	print(dshape)
 	print(df.head(3))
 	print(df.tail(3))
 	print(df.columns)
 	print(df.shape)
 	print()
+	
 	trn = floor(df.shape[0] * arg.split)
 	
 	# setting seed to just compare the results
@@ -496,7 +440,7 @@ if __name__ == '__main__':
 	
 	# create a model from `AE` autoencoder class
 	# load it to the specified device, either gpu or cpu
-	"""
+	
 	model_aefc = SimpleAEfc(
 		inshape=fshape, dropout=arg.dropout).to(device)
 	s_aefc = summary(
@@ -525,7 +469,7 @@ if __name__ == '__main__':
 	test_loader = data_utils.DataLoader(test, batch_size=1, shuffle=True)
 
 	print(df.norm_frag[trn], len(df.norm_frag[trn]))
-	
+	print()
 	# Set loss and optimizer
 	criterion = nn.MSELoss()
 	optimizer = optim.Adam(
@@ -606,8 +550,7 @@ if __name__ == '__main__':
 		device=device)
 	
 	model_aecnn = SimpleAEcnn(dropout=arg.dropout).to(device)
-	"""
-	"""
+	
 	s_aecnn = summary(
 		model_aecnn,
 		input_size=(arg.batchsize, 1, dshape, dshape),
@@ -616,14 +559,12 @@ if __name__ == '__main__':
 	su_aecnn = repr(s_aecnn)
 	print(su_aecnn.encode('utf-8').decode('latin-1'))
 	print()
-	"""
-	"""
+	
 	# Set optimizer
 	optimizer = optim.Adam(
 		model_aecnn.parameters(),
 		lr=arg.lrate,
 		weight_decay=arg.l2)
-	"""
 	
 	# Set the data loaders
 	train_coords = np.array(df.dmatrix[:trn].to_list())
@@ -643,7 +584,7 @@ if __name__ == '__main__':
 	
 	test_loader = data_utils.DataLoader(test, batch_size=1, shuffle=True)
 	
-	"""
+	
 	# Fit the model
 	model_aecnn = fit_model(
 		model_aecnn,
@@ -653,18 +594,53 @@ if __name__ == '__main__':
 		criterion=criterion,
 		epochs=10,
 		device=device)
-	"""
+	
 	# Set the dynamic cnn
+	encoder={
+		'channels': [100,50],
+		'conv_ks': [(4,4), (4,4)],
+		'pool_ks': [(4,4), (4,4)],
+		'conv_paddings': [(1,1), (1,1)],
+		'pool_paddings': [(1,1), (1,1)]}
+	decoder={
+		'channels': [100,1],
+		'convt_ks': [(3,3), (3,3)],
+		'convt_strides': [(1,1), (1,1)]}
+	
+	if not cnn_ae_validator(
+		inshape=(dshape, dshape), 
+		encoder=encoder,
+		decoder=decoder):
+		raise('cnn validator failed')
+	
+	
 	model_dyn_cnn = DynamicAEcnn(
 		channels=[100, 50, 100, 1],
-		function_list=[relu, relu, relu, relu],
-		dropout=[0.1, 0.1])
-
-	criterion = nn.MSELoss()
+		dropout=None,
+		encoder={
+			'channels': [100,50],
+			'conv_ks': [(4,4), (4,4)],
+			'pool_ks': [(4,4), (4,4)],
+			'conv_paddings': [(1,1), (1,1)],
+			'pool_paddings': [(1,1), (1,1)]},
+		decoder={
+			'channels': [100,1],
+			'convt_ks': [(3,3), (3,3)],
+			'convt_strides': [(1,1), (1,1)]})
+	
 	optimizer = optim.Adam(
 		model_dyn_cnn.parameters(),
 		lr=arg.lrate,
 		weight_decay=arg.l2)
+	
+	d_aecnn = summary(
+		model_dyn_cnn,
+		input_size=(arg.batchsize, 1, dshape, dshape),
+		verbose=0)
+	
+	dy_aecnn = repr(d_aecnn)
+	print(dy_aecnn.encode('utf-8').decode('latin-1'))
+	print()
 	
 	# Fit the model
 	model_dyn_cnn = fit_model(
@@ -675,3 +651,4 @@ if __name__ == '__main__':
 		criterion=criterion,
 		epochs=10,
 		device=device)
+	print()
