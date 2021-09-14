@@ -56,6 +56,10 @@ def make_atom_frame(files, ftype = None):
 
 def make_CAframe(atomdf, size):
 	new = []
+	start = True
+	fidxs    = None
+	pos      = None
+	frag_seq = None
 	for counter, (idx, row) in enumerate(atomdf.iterrows()):
 		if counter % 10000 == 0: print(counter)
 		if row.Atom != 'CA': continue
@@ -67,34 +71,67 @@ def make_CAframe(atomdf, size):
 		pdbid = row.Molecule_Name
 		resid = row.Index
 		chid  = row.Chain_ID
-		fidxs = [resid]
-		#print(fidxs, row.Residue)
-		pos = [[row.X, row.Y, row.Z]]
-		frag_seq = str(row.Residue)
-		skip = False
-
-		for i in range(1,size):
+		
+		if fidxs is None and pos is None and frag_seq is None:
+			fidxs = [resid]
+			pos = [[row.X, row.Y, row.Z]]
+			frag_seq = str(row.Residue)
+		
+		print(fidxs, row.Residue)
+		
+		if start:
+			skip  = False
+			start = False
+			for i in range(1,size):
+				df_row = atomdf[atomdf['Molecule_Name'] == pdbid]
+				df_row = df_row[df_row['Index'] == (fidxs[i-1]+1)]
+				df_row = df_row[df_row['Chain_ID'] == chid]
+				df_row = df_row[df_row['Atom'] == 'CA']
+				
+				if df_row.empty:
+					skip = True
+					break
+				fidxs.append(df_row['Index'].values[0])
+				pos.append([df_row.X.values[0], 
+							df_row.Y.values[0], 
+							df_row.Z.values[0]])
+				frag_seq += str(df_row['Residue'].values[0])
+			
+			if skip:
+				fidxs    = None
+				pos      = None
+				frag_seq = None
+				start    = True
+				continue
+		else:
+			fidxs    = fidxs[1:]
+			pos      = pos[1:]
+			frag_seq = frag_seq[1:]
+			
 			df_row = atomdf[atomdf['Molecule_Name'] == pdbid]
-			df_row = df_row[df_row['Index'] == (fidxs[i-1]+1)]
+			df_row = df_row[df_row['Index'] == (fidxs[-1]+1)]
 			df_row = df_row[df_row['Chain_ID'] == chid]
 			df_row = df_row[df_row['Atom'] == 'CA']
-
+			
 			if df_row.empty:
-				skip = True
-				break
+				fidxs    = None
+				pos      = None
+				frag_seq = None
+				start    = True			
+				continue
+			
 			fidxs.append(df_row['Index'].values[0])
-			pos.append([df_row.X.values[0], 
-						df_row.Y.values[0], 
-						df_row.Z.values[0]])
+			pos.append([
+				df_row.X.values[0],
+				df_row.Y.values[0],
+				df_row.Z.values[0]])
 			frag_seq += str(df_row['Residue'].values[0])
-
-		if skip: continue
-
+		
 		dic['fragment_ids'] = fidxs
 		dic['fragment_seq'] = frag_seq
 		dic['xyz_set'] = pos
 		new.append(dic)
-	
+			
 	df = pd.DataFrame(new, columns =['pdb_id', 'model_id',
 									 'chain_id', 'fragment_ids',
 									 'fragment_seq', 'xyz_set',
