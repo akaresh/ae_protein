@@ -55,6 +55,7 @@ def make_atom_frame(files, ftype = None):
 										  'Atom', 'Type', 'X', 'Y', 'Z'])
 	return df
 
+
 def make_CAframe(atomdf, size):
 	new = []
 	start = True
@@ -240,6 +241,7 @@ def res_cen(dict_positions):
 		my += ((Formula(values[-1]).mass)*values[1])
 		mz += ((Formula(values[-1]).mass)*values[2])
 	return [mx/total_mass, my/total_mass, mz/total_mass]
+
 
 def make_bbcen(atomdf, size):
 	backbone = ['N', 'CA', 'C', 'O']
