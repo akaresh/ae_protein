@@ -48,6 +48,7 @@
 	- test validators
 	- test training_tools helper functions
 	- test architectures
+6. As part of the tests, we should develop a function that checks if all of the atoms are present.
 
 ## Development Guide ##
 
