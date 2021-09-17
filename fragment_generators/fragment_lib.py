@@ -1,5 +1,6 @@
 import sys
 
+import numpy as np
 import pandas as pd
 import Bio.Data.IUPACData as conv
 import Bio.PDB.MMCIFParser as mmcifparser
@@ -57,9 +58,11 @@ def make_atom_frame(files, ftype = None):
 def make_CAframe(atomdf, size):
 	new = []
 	start = True
+	
 	fidxs    = None
 	pos      = None
 	frag_seq = None
+	
 	for counter, (idx, row) in enumerate(atomdf.iterrows()):
 		if counter % 10000 == 0: print(counter)
 		if row.Atom != 'CA': continue
@@ -77,7 +80,7 @@ def make_CAframe(atomdf, size):
 			pos = [[row.X, row.Y, row.Z]]
 			frag_seq = str(row.Residue)
 		
-		print(fidxs, row.Residue)
+		# print(fidxs, row.Residue)
 		
 		if start:
 			skip  = False
@@ -137,44 +140,82 @@ def make_CAframe(atomdf, size):
 									 'fragment_seq', 'xyz_set',
 									 'fragment_type'])
 	return df
-#new = make_CAframe(df, k)
 
 
 def make_bbframe(atomdf, size):
 	new = []
-	#size = 3
 	backbone = ['N', 'CA', 'C', 'O']
+	
+	start    = True
+	fidxs    = []
+	pos      = []
+	frag_seq = ''	
+	
 	for idx, row in atomdf.iterrows():
 		if row.Atom != 'N': continue
-
+		
 		dic = {'pdb_id':row.Molecule_Name, 'model_id':row.Model_ID,
 			'chain_id':row.Chain_ID, 'fragment_ids':None,
 			'fragment_seq':None, 'xyz_set':None, 'fragment_type':'bb'}
+		
+		pdbid = row.Molecule_Name
 		resid = row.Index
 		chid  = row.Chain_ID
-		fidxs = []
-		pos = []
-		frag_seq = ''
-
-		skip = False
-		for i in range(0,size):
-			df_row = atomdf[atomdf['Index'] == (resid + i)]
+		
+		if start:
+			start = False
+			skip  = False
+			for i in range(0,size):
+				df_row = atomdf[atomdf['Molecule_Name'] == pdbid]
+				df_row = df_row[df_row['Index'] == (resid+i)]
+				df_row = df_row[df_row['Chain_ID'] == chid]
+				
+				if df_row.empty:
+					skip = True
+					break
+				
+				fidxs.append(df_row['Index'].values[0])
+				frag_seq += str(df_row['Residue'].values[0])
+				
+				for b in backbone:
+					df_row1 = df_row[df_row['Atom'] == b]
+					if df_row1.empty: raise(f'df_row1 empty at {b}')
+					pos.append([df_row1.X.values[0],
+								df_row1.Y.values[0],
+								df_row1.Z.values[0]])
+			
+			if skip:
+				fidxs    = []
+				pos      = []
+				frag_seq = ''
+				start    = True
+				continue
+		else:
+			fidxs    = fidxs[1:]
+			pos      = pos[4:]
+			frag_seq = frag_seq[1:]
+			
+			df_row = atomdf[atomdf['Molecule_Name'] == pdbid]
+			df_row = df_row[df_row['Index'] == (fidxs[-1]+1)]
 			df_row = df_row[df_row['Chain_ID'] == chid]
-
+			
 			if df_row.empty:
-				skip = True
-				break
+				fidxs    = []
+				pos      = []
+				frag_seq = ''
+				start    = True			
+				continue
+			
 			fidxs.append(df_row['Index'].values[0])
 			frag_seq += str(df_row['Residue'].values[0])
-
 			for b in backbone:
 				df_row1 = df_row[df_row['Atom'] == b]
-				pos.append([df_row1.X.values[0],
-							df_row1.Y.values[0],
-							df_row1.Z.values[0]])
-
-		if skip: continue
-
+				if df_row1.empty: raise(f'df_row1 empty at {b}')
+				pos.append([
+					df_row1.X.values[0],
+					df_row1.Y.values[0],
+					df_row1.Z.values[0]])
+		
 		dic['fragment_ids'] = fidxs
 		dic['fragment_seq'] = frag_seq
 		dic['xyz_set'] = pos
@@ -186,8 +227,6 @@ def make_bbframe(atomdf, size):
 									 'fragment_type'])	
 	return df
 
-# new1 = make_bbframe(df, 5)
-# print(new1)
 
 def res_cen(dict_positions):
 	#print(dict_positions)
@@ -270,7 +309,6 @@ def make_bbcen(atomdf, size):
 									 'fragment_type', 'atoms_list'])	
 	return df
 
-# a = (make_bbcen(df, 4))
 
 def make_fragment_frame(atomdf, size, ftype=None):
 	assert(ftype != None)

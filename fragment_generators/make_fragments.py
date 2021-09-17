@@ -10,6 +10,9 @@ import pandas as pd
 import sys
 
 from fragment_lib import make_atom_frame, make_fragment_frame
+import numpy as np
+
+pd.set_option('display.max_columns', None)
 
 
 parser = argparse.ArgumentParser(description='making fragments')
@@ -49,6 +52,8 @@ if arg.file:
 	print(frag_df.head(3))
 	print(frag_df.columns)
 	print(frag_df.shape)
+	print(frag_df.xyz_set[0])
+	print(np.array(frag_df.xyz_set[0]).shape)
 	
 	if arg.outfrag: frag_df.to_pickle(arg.outfrag, compression='xz')
 	if arg.atoms == None:
