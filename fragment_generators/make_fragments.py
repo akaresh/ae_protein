@@ -13,6 +13,7 @@ from fragment_lib import make_atom_frame, make_fragment_frame
 import numpy as np
 
 pd.set_option('display.max_columns', None)
+pd.set_option('display.max_rows', None)
 
 
 parser = argparse.ArgumentParser(description='making fragments')
@@ -45,11 +46,14 @@ assert(arg.type == 'CA' or arg.type == 'bb' or arg.type == 'bbcen'
 
 if arg.file:
 	if arg.atoms: atm_frame = pd.read_pickle(arg.atoms, compression='xz')
-	else:         atm_frame = make_atom_frame([arg.file], ftype = arg.type)
+	else:
+		atm_frame = make_atom_frame([arg.file])
+		print(atm_frame.head(1000000))
+		#sys.exit()
 	
 	frag_df = make_fragment_frame(atm_frame, arg.size, ftype=arg.type)
 	
-	print(frag_df.head(3))
+	print(frag_df.head(100000000))
 	print(frag_df.columns)
 	print(frag_df.shape)
 	print(frag_df.xyz_set[0])
@@ -69,13 +73,14 @@ elif arg.cifs:
 		with open(arg.cifs, 'r') as fp:
 			cifs = json.load(fp)
 		fp.close()
-		atm_frame = make_atom_frame(cifs, ftype = arg.type)
+		atm_frame = make_atom_frame(cifs)
+		print(atm_frame.head(10000000))
 	
 	print('finished atom frame')
 	
 	frag_df = make_fragment_frame(atm_frame, arg.size, ftype=arg.type)
 	
-	print(frag_df.head(3))
+	print(frag_df.head(100000))
 	print(frag_df.columns)
 	print(frag_df.shape)
 	

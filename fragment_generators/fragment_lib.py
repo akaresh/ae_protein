@@ -7,18 +7,17 @@ import Bio.PDB.MMCIFParser as mmcifparser
 from molmass import Formula
 #import Bio.PDB.internal_coords as internal_coords
 
-parser = mmcifparser()
+cifparser = mmcifparser()
 aa_dict = (conv.protein_letters_3to1_extended)
 
-def make_atom_frame(files, ftype = None):
+def make_atom_frame(files):
 	assert(type(files) == list)
-	#assert(ftype != None)
 
 	seq_data = []
 
 	for cif in files:
 		psplit = cif.split('/')
-		xyz  = parser.get_structure(psplit[-1][:-4], cif)
+		xyz  = cifparser.get_structure(psplit[-1][:-4], cif)
 		index = 0
 
 		# if ftype == 'bbcen' or ftype == 'bbsc':
@@ -33,10 +32,8 @@ def make_atom_frame(files, ftype = None):
 					index += 1
 					res = r.get_resname()
 					res = res.capitalize()
-
 					#skipping non-residues
 					if res not in aa_dict.keys(): continue
-
 					for atom in r.get_atoms():
 						seq_data.append((index,
 										 atom.get_full_id()[0],
@@ -53,6 +50,7 @@ def make_atom_frame(files, ftype = None):
 	df = pd.DataFrame(seq_data, columns =['Index', 'Molecule_Name','Model_ID',
 										  'Chain_ID', 'Residue_ID', 'Residue',
 										  'Atom', 'Type', 'X', 'Y', 'Z'])
+	
 	return df
 
 
@@ -88,8 +86,9 @@ def make_CAframe(atomdf, size):
 			start = False
 			for i in range(1,size):
 				df_row = atomdf[atomdf['Molecule_Name'] == pdbid]
-				df_row = df_row[df_row['Index'] == (fidxs[i-1]+1)]
+				df_row = df_row[df_row['Model_ID'] == dic['model_id']]
 				df_row = df_row[df_row['Chain_ID'] == chid]
+				df_row = df_row[df_row['Index'] == (fidxs[i-1]+1)]
 				df_row = df_row[df_row['Atom'] == 'CA']
 				
 				if df_row.empty:
@@ -243,73 +242,131 @@ def res_cen(dict_positions):
 	return [mx/total_mass, my/total_mass, mz/total_mass]
 
 
-def make_bbcen(atomdf, size):
-	backbone = ['N', 'CA', 'C', 'O']
-	new = []
-	for idx, row in atomdf.iterrows():
-		if row.Atom != 'N': continue
-
-		dic = {'pdb_id':row.Molecule_Name, 'model_id':row.Model_ID,
-			'chain_id':row.Chain_ID, 'fragment_ids':None,
-			'fragment_seq':None, 'xyz_set':None, 'atoms_list':None,
-			'fragment_type':'bb+cen'}
-		resid = row.Index
-		chid  = row.Chain_ID
-		fidxs = []
-		pos = []
-		frag_seq = ''
-		atoms = []
-
-		skip = False
-
-		for i in range(0, size):
-			df_row = atomdf[atomdf['Index'] == (resid + i)]
-			df_row = df_row[df_row['Chain_ID'] == chid]
-
-			if df_row.empty:
-				skip = True
-				break
-			fidxs.append(df_row['Index'].values[0])
-			frag_seq += str(df_row['Residue'].values[0])
-
-			res_atoms_pos = {}
-			atoms_sublist = []
-			for sub_id, sub_row in df_row.iterrows():
-				if sub_row.Atom in backbone:
-					atoms_sublist.append(sub_row.Atom)
-					pos.append([sub_row.X, sub_row.Y, sub_row.Z])
-				else:
-					if sub_row.Atom in res_atoms_pos.keys():
-						raise ValueError('Atom Duplication')
-					res_atoms_pos[sub_row.Atom] = [sub_row.X,
-												   sub_row.Y,
-												   sub_row.Z,
-												   sub_row.Type]
-			atoms_sublist.append('Centroid')
-			atoms.append(atoms_sublist)
-
-			if len(res_atoms_pos) > 0:
-				#print(res_atoms_pos)
-				pos.append(res_cen(res_atoms_pos))
-				#print(res_cen(res_atoms_pos))
-			else:
-				#print(res_cen)
-				#print('glycine') = glycine extention
-				pass
-
-		if skip: continue
-
-		dic['fragment_ids'] = fidxs
-		dic['fragment_seq'] = frag_seq
-		dic['xyz_set'] = pos
-		dic['atoms_list'] = atoms
-		new.append(dic)
-	
-	df = pd.DataFrame(new, columns =['pdb_id', 'model_id',
-									 'chain_id', 'fragment_ids',
-									 'fragment_seq', 'xyz_set',
-									 'fragment_type', 'atoms_list'])	
-	return df
+# def make_bbcen(atomdf, size):
+# 	backbone = ['N', 'CA', 'C', 'O']
+# 	new = []
+# 	
+# 	start    = True
+# 	fidxs    = []
+# 	pos      = []
+# 	frag_seq = ''
+# 	
+# 	for idx, row in atomdf.iterrows():
+# 		if row.Atom != 'N': continue
+# 		
+# 		dic = {'pdb_id':row.Molecule_Name, 'model_id':row.Model_ID,
+# 			'chain_id':row.Chain_ID, 'fragment_ids':None,
+# 			'fragment_seq':None, 'xyz_set':None,
+# 			'fragment_type':'bb+cen'}
+# 		resid = row.Index
+# 		chid  = row.Chain_ID
+# 		
+# 		fidxs = []
+# 		pos = []
+# 		frag_seq = ''
+# 		atoms = []
+# 		
+# 		if start:
+# 			start = False
+# 			skip  = False
+# 			for i in range(0, size):
+# 				df_row = atomdf[atomdf['Molecule_Name'] == pdbid]
+# 				df_row = atomdf[atomdf['Index'] == (resid + i)]
+# 				df_row = df_row[df_row['Chain_ID'] == chid]
+# 				
+# 				if df_row.empty:
+# 					skip = True
+# 					break
+# 				
+# 				if df_row['Residue'] == 'G': 
+# 					skip = True
+# 					break
+# 				
+# 				fidxs.append(df_row['Index'].values[0])
+# 				frag_seq += str(df_row['Residue'].values[0])
+# 				
+# 				res_atoms_pos = {}
+# 				atoms_sublist = []
+# 				for sub_id, sub_row in df_row.iterrows():
+# 					if sub_row.Atom in backbone: continue
+# #						atoms_sublist.append(sub_row.Atom)
+# #						pos.append([sub_row.X, sub_row.Y, sub_row.Z])
+# 					else:
+# 						if sub_row.Atom in res_atoms_pos.keys():
+# 							raise ValueError('Atom Duplication')
+# 						res_atoms_pos[sub_row.Atom] = [sub_row.X,
+# 													   sub_row.Y,
+# 													   sub_row.Z,
+# 													   sub_row.Type]
+# 				
+# 				centroid_pos = res_cen(res_atoms_pos)
+# 				
+# 				for b in backbone:
+# 					df_row1 = df_row[df_row['Atom'] == b]
+# 					if df_row1.empty: raise(f'df_row1 empty at {b}')
+# 					pos.append([df_row1.X.values[0],
+# 								df_row1.Y.values[0],
+# 								df_row1.Z.values[0]])
+# 				
+# 				
+# 				
+# 			if skip:
+# 				fidxs    = []
+# 				pos      = []
+# 				frag_seq = ''
+# 				start    = True
+# 				continue
+# 			
+# 			res_atoms_pos = {}
+# 			atoms_sublist = []
+# 			for sub_id, sub_row in df_row.iterrows():
+# 				if sub_row.Atom in backbone: continue
+# #					atoms_sublist.append(sub_row.Atom)
+# #					pos.append([sub_row.X, sub_row.Y, sub_row.Z])
+# 				else:
+# 					if sub_row.Atom in res_atoms_pos.keys():
+# 						raise ValueError('Atom Duplication')
+# 					res_atoms_pos[sub_row.Atom] = [sub_row.X,
+# 												   sub_row.Y,
+# 												   sub_row.Z,
+# 												   sub_row.Type]
+# 			
+# 			centroid_pos = res_cen(res_atoms_pos)
+# 			
+# 			df_row1 = df_row[df_row['Atom'] == b]
+# 			if df_row1.empty: raise(f'df_row1 empty at {b}')
+# 			pos.append([df_row1.X.values[0],
+# 								df_row1.Y.values[0],
+# 								df_row1.Z.values[0]])
+# 			
+# 			for b in backbone:
+# 				df_row1 = df_row[df_row['Atom'] == b]
+# 			
+# 			atoms_sublist.append('Centroid')
+# 			atoms.append(atoms_sublist)
+# 
+# 			if len(res_atoms_pos) > 0:
+# 				#print(res_atoms_pos)
+# 				pos.append(res_cen(res_atoms_pos))
+# 				#print(res_cen(res_atoms_pos))
+# 			else:
+# 				#print(res_cen)
+# 				#print('glycine') = glycine extention
+# 				pass
+# 
+# 		if skip: continue
+# 
+# 		dic['fragment_ids'] = fidxs
+# 		dic['fragment_seq'] = frag_seq
+# 		dic['xyz_set'] = pos
+# 		dic['atoms_list'] = atoms
+# 		new.append(dic)
+# 	
+# 	df = pd.DataFrame(new, columns =['pdb_id', 'model_id',
+# 									 'chain_id', 'fragment_ids',
+# 									 'fragment_seq', 'xyz_set',
+# 									 'fragment_type', 'atoms_list'])	
+# 	return df
 
 
 def make_fragment_frame(atomdf, size, ftype=None):
