@@ -31,6 +31,7 @@ def check_complete(b):
 			if r == 'CA' and r == chain: return False
 		
 		return True
+	else: return False
 
 assert(arg.file or arg.dir)
 
@@ -57,12 +58,15 @@ if arg.file:
 elif arg.dir:
 	for fc in os.listdir(arg.dir):
 		if fc.endswith(".cif"):
+			print(fc)
 			with open(os.path.join(arg.dir,fc), 'r') as c:
 				doc = cif.read_string(c.read())
 				block = doc.sole_block()
 				
 				if check_complete(block): updated.append(os.path.join(arg.dir, fc))
-			
+				else:
+					print(fc)
+					sys.exit()
 			if len(updated) >= arg.n: break
 
 print(json.dumps(updated))
