@@ -12,6 +12,7 @@ import sys
 import urllib.request
 
 import Bio.PDB as bpdb
+from Bio.PDB import MMCIF2Dict
 
 class ChainSelector(bpdb.Select):
 	def __init__(self, chainid):
@@ -23,8 +24,8 @@ class ChainSelector(bpdb.Select):
 		if chain.id == self.chainid: return 1
 		else:                return 0
 
-path = '/share/korflab/data/pdb40/complete_structures/'
-out  = '/share/korflab/data/pdb40/chains/'
+path = '/share/korflab/data/pdb25/complete_structures/'
+out  = '/share/korflab/data/pdb25/chains/'
 
 with open(sys.argv[1], 'r') as fp:
 	entries = fp.readlines()
@@ -37,29 +38,57 @@ for i, row in enumerate(entries):
 	r = row.split()
 	pdbid = r[0][:4].lower()
 	chainid = r[0][4:]
-	
-	if not os.path.isfile(f'{path}{pdbid}.cif'):
-		print('downloading')
-		urllib.request.urlretrieve(f'http://files.rcsb.org/download/{pdbid}.cif', 
+	print('downloading')
+	urllib.request.urlretrieve(f'http://files.rcsb.org/download/{pdbid}.cif', 
 								   f'{path}{pdbid}.cif')
 	
 	if os.path.isfile(f'{out}{pdbid}{chainid.lower()}.cif'):
 		#print('skip')
 		continue
 	
-	try:
-		parser = bpdb.MMCIFParser()
-		filep = path+pdbid+'.cif'
-		print(row)
-		print(filep)
-		structure = parser.get_structure(pdbid+chainid,filep)
-	
-		io = bpdb.MMCIFIO()
-		io.set_structure(structure)
-		outf = out+pdbid+chainid.lower()+'.cif' 
-		io.save(outf, select=ChainSelector(chainid))
-	except KeyboardInterrupt:
-		sys.exit()
-	except:
-		print('could not resolve parser')
-		continue
+	#try:
+	parser = bpdb.MMCIFParser()
+	filep = path+pdbid+'.cif'
+	print(row)
+	print(filep)
+	structure = parser.get_structure(pdbid+chainid,filep)
+	cifdic = MMCIF2Dict.MMCIF2Dict(filep)
+	#print(cifdic)
+	#print(list(cifdic.keys()))
+	stop=False
+	for k in cifdic.keys():
+		if 'unobs' in k: 
+			print(k)
+			stop=True
+			break
+	io = bpdb.MMCIFIO()
+	io.set_dict(cifdic)
+	if stop: 
+		print('we set it right???')
+		print(list(io.dic.keys()))
+		print()
+	io.set_structure(structure)
+	if stop: 
+		print('dic after set_structure')
+		print(list(io.dic.keys()))
+		print()
+	outf = out+pdbid+chainid.lower()+'.cif' 
+	with open(outf, 'a') as fp:
+		#io._save_structure(fp, select=ChainSelector(chainid), preserve_atom_numbering=True)
+		io._save_dict(fp)
+		io._save_structure(
+			fp,
+			select=ChainSelector(chainid),
+			preserve_atom_numbering=True)
+		if stop:
+			print('io obj after saving')
+			print(dir(io))
+			print(list(io.dic.keys()))
+			print(list(cifdic.keys()))
+			sys.exit()
+	fp.close()
+#	except KeyboardInterrupt:
+#		sys.exit()
+#	except:
+#		print('could not resolve parser')
+#		continue
