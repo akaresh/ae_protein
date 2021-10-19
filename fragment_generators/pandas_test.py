@@ -11,6 +11,7 @@ import pandas as pd
 import sys
 
 import Bio.Data.IUPACData as conv
+from Bio.PDB import MMCIF2Dict
 import Bio.PDB.MMCIFParser as mmcifparser
 
 #from Bio.PDB.DSSP import DSSP as dssp
@@ -40,15 +41,22 @@ def make_atom_frame(files):
 	for cif in files:
 		psplit = cif.split('/')
 		xyz  = cifparser.get_structure(psplit[-1][:-4], cif)
-		print(psplit)
 		missing = dict()
-		header = xyz.header
-		if 'keywords' in header:
-			keywords = xyz.header['keywords']
-			if 'missing_residues' in keywords:
-				missing = keywords['missing_residues']
-				print(missing)
-				sys.exit()
+		cifdic = MMCIF2Dict.MMCIF2Dict(cif)
+		unobs_keys = [k for k in cifdic.keys() if 'unobs' in k]
+		if len(unobs_keys) > 0:
+			print(psplit)
+			for unk in unobs_keys:
+				print(unk, cifdic[unk])
+			sys.exit()
+				
+		
+# 		if 'keywords' in header:
+# 			keywords = xyz.header['keywords']
+# 			if 'missing_residues' in keywords:
+# 				missing = keywords['missing_residues']
+# 				print(missing)
+# 				sys.exit()
 		continue
 # 		for i, m in enumerate(xyz.get_models()):
 # 			for j, c in enumerate(m.get_chains()):
