@@ -1,11 +1,6 @@
 #!/usr/bin/python3 
 
-"""
-this takes in the pdbid list from pisces
-this needs documenting
-"""
-
-
+import argparse
 import csv
 import os
 import sys
@@ -24,71 +19,78 @@ class ChainSelector(bpdb.Select):
 		if chain.id == self.chainid: return 1
 		else:                return 0
 
-path = '/share/korflab/data/pdb25/complete_structures/'
-out  = '/share/korflab/data/pdb25/chains/'
+parser = argparse.ArgumentParser(description='creating chains/')
+parser.add_argument('--pdbs', required=True, type=str,
+	metavar='<path>', help='path to text file with pdb ids from PISCES')
+parser.add_argument('--dir', required=True, type=str,
+	metavar='<path>', help='directory to save chains/ and complete_structures')
 
-with open(sys.argv[1], 'r') as fp:
+arg = parser.parse_args()
+
+path = os.path.join(arg.dir, 'complete_structures')
+out  = os.path.join(arg.dir, 'chains')
+with open(arg.pdbs, 'r') as fp:
 	entries = fp.readlines()
 fp.close()
 
 entries = entries[1:]
-pdbl = bpdb.PDBList(pdb=path,obsolete_pdb=False)
 for i, row in enumerate(entries):
 	row = row.rstrip()
 	r = row.split()
+	assert(len(r) == 6) # make sure it is from PISCES
 	pdbid = r[0][:4].lower()
 	chainid = r[0][4:]
-	print('downloading')
-	urllib.request.urlretrieve(f'http://files.rcsb.org/download/{pdbid}.cif', 
-								   f'{path}{pdbid}.cif')
+	print(pdbid, chainid)
+	#print('downloading')
 	
-	if os.path.isfile(f'{out}{pdbid}{chainid.lower()}.cif'):
-		#print('skip')
-		continue
+	if not os.path.isfile(f'{path}/{pdbid}.cif'):
+		urllib.request.urlretrieve(
+			f'http://files.rcsb.org/download/{pdbid}.cif',
+			f'{path}/{pdbid}.cif')
+	if not os.path.isfile(f'{path}/{pdbid}.pdb'):
+		try:
+			urllib.request.urlretrieve(
+				f'http://files.rcsb.org/download/{pdbid}.pdb',
+				f'{path}/{pdbid}.pdb')
+		except:
+			continue
 	
-	#try:
-	parser = bpdb.MMCIFParser()
-	filep = path+pdbid+'.cif'
-	print(row)
-	print(filep)
-	structure = parser.get_structure(pdbid+chainid,filep)
-	cifdic = MMCIF2Dict.MMCIF2Dict(filep)
-	#print(cifdic)
-	#print(list(cifdic.keys()))
-	stop=False
-	for k in cifdic.keys():
-		if 'unobs' in k: 
-			print(k)
-			stop=True
-			break
-	io = bpdb.MMCIFIO()
-	io.set_dict(cifdic)
-	if stop: 
-		print('we set it right???')
-		print(list(io.dic.keys()))
-		print()
-	io.set_structure(structure)
-	if stop: 
-		print('dic after set_structure')
-		print(list(io.dic.keys()))
-		print()
-	outf = out+pdbid+chainid.lower()+'.cif' 
-	with open(outf, 'a') as fp:
-		#io._save_structure(fp, select=ChainSelector(chainid), preserve_atom_numbering=True)
-		io._save_dict(fp)
-		io._save_structure(
-			fp,
-			select=ChainSelector(chainid),
-			preserve_atom_numbering=True)
-		if stop:
-			print('io obj after saving')
-			print(dir(io))
-			print(list(io.dic.keys()))
-			print(list(cifdic.keys()))
-			sys.exit()
-	fp.close()
-#	except KeyboardInterrupt:
-#		sys.exit()
-#	except:
-#		print('could not resolve parser')
-#		continue
+# 	if not os.path.isfile(f'{out}/{pdbid}{chainid.lower()}.cif'):
+# 		parser = bpdb.MMCIFParser()
+# 		filep = path+'/'+pdbid+'.cif'
+# 		try:
+# 			structure = parser.get_structure(pdbid+chainid,filep)
+# 		except:
+# 			continue
+# 		cifdic = MMCIF2Dict.MMCIF2Dict(filep)
+# 		
+# 		io = bpdb.MMCIFIO()
+# 		io.set_dict(cifdic)
+# 		io.set_structure(structure)
+# 		
+# 		outf = out+'/'+pdbid+chainid.lower()+'.cif'
+# 		with open(outf, 'a') as fp:
+# 			io._save_dict(fp)
+# 			io._save_structure(
+# 				fp,
+# 				select=ChainSelector(chainid),
+# 				preserve_atom_numbering=False)
+# 		fp.close()
+	
+	if not os.path.isfile(f'{out}/{pdbid}{chainid.lower()}.pdb'):
+		parser = bpdb.PDBParser()
+		filep = path+'/'+pdbid+'.pdb'
+		try:
+			structure = parser.get_structure(pdbid+chainid,filep)
+		except:
+			continue
+		
+		io = bpdb.PDBIO()
+		io.set_structure(structure)
+		outf = out+'/'+pdbid+chainid.lower()+'.pdb'
+		with open(outf, 'w') as fp:
+			io.save(
+				fp,
+				select=ChainSelector(chainid),
+				preserve_atom_numbering=False)
+		fp.close()

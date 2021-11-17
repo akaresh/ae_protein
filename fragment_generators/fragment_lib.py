@@ -10,6 +10,26 @@ from molmass import Formula
 cifparser = mmcifparser()
 aa_dict = (conv.protein_letters_3to1_extended)
 
+
+"""
+1. just ignore structures with any missing res and atoms
+2. just grab turns, before i was making fragments through the whole structure
+3. just grab xyz of CA cluster the vectors of positions in the turns
+	CA coordinates of the turns
+4. install dssp
+5. make pdb
+5. run dssp on the turns
+6. MLP on turns
+
+learning
+CNN autoencoder
+distance matrix between all the atoms
+M, MxM 
+CNN down to some latent space
+convolution transpose 
+"""
+
+
 def make_atom_frame(files):
 	assert(type(files) == list)
 
@@ -95,8 +115,8 @@ def make_CAframe(atomdf, size):
 					skip = True
 					break
 				fidxs.append(df_row['Index'].values[0])
-				pos.append([df_row.X.values[0], 
-							df_row.Y.values[0], 
+				pos.append([df_row.X.values[0],
+							df_row.Y.values[0],
 							df_row.Z.values[0]])
 				frag_seq += str(df_row['Residue'].values[0])
 			
