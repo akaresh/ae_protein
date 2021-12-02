@@ -1,0 +1,3 @@
+rectype count  pdb        chain res1   aa1 res4   aa4 aa1234 ss1234 Ca1Ca4 omega2  phi2    psi2    omega3  phi3    psi3    omega4  border conf1 int1 type1 prev_name1    letter1 d_deg1 conf2 int2 type2 prev_name2    letter2 d_deg2
+table   1      3fila      A     9      GLY 12     LEU GKTL   CSSC   4.884  172.45  -66.45  -33.74  182.77  -130.54 5.90    170.40  +      0.577 1    AD    I             a       16.64  0.423 6    AZ    new_prev_VIII f       22.73 
+table   2      3fila      A     46     ASP 49     THR DDAT   EGGG   5.745  179.63  -62.82  -30.31  184.54  -64.52  -27.34  181.63  .      1.000 1    AD    I             a       13.69  0.000 19   Other IV            z       999.00

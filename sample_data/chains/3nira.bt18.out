@@ -1,0 +1,4 @@
+rectype count  pdb        chain res1   aa1 res4   aa4 aa1234 ss1234 Ca1Ca4 omega2  phi2    psi2    omega3  phi3    psi3    omega4  border conf1 int1 type1 prev_name1    letter1 d_deg1 conf2 int2 type2 prev_name2    letter2 d_deg2
+table   1      3nira      A     17     ARG 20     GLY RLPG   HTTT   5.057  185.78  -53.67  -43.54  177.65  -77.01  -4.21   179.01  .      1.000 1    AD    I             a       13.23  0.000 19   Other IV            z       999.00
+table   2      3nira      A     41     PRO 44     TYR PGDY   CTTS   5.361  186.11  -65.88  -20.61  174.88  -92.88  -1.26   170.02  .      0.765 1    AD    I             a       8.54   0.235 6    AZ    new_prev_VIII f       27.81 
+table   3      3nira      A     42     GLY 45     ALA GDYA   TTSC   5.008  174.88  -92.88  -1.26   170.02  -128.98 58.91   194.91  +      0.656 6    AZ    new_prev_VIII f       11.07  0.344 9    AG    new_prev_VIII i       21.12 

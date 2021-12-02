@@ -1,0 +1,3 @@
+rectype count  pdb        chain res1   aa1 res4   aa4 aa1234 ss1234 Ca1Ca4 omega2  phi2    psi2    omega3  phi3    psi3    omega4  border conf1 int1 type1 prev_name1    letter1 d_deg1 conf2 int2 type2 prev_name2    letter2 d_deg2
+table   1      4npda      A     19     LEU 22     LEU LPNL   CTTC   6.375  196.23  -82.08  -20.27  191.05  -106.61 2.61    175.10  +      0.667 1    AD    I             a       12.02  0.333 6    AZ    new_prev_VIII f       24.04 
+table   2      4npda      A     37     ASP 40     VAL DPSV   CGGG   6.069  184.96  -60.01  -17.76  178.53  -67.89  -13.66  175.06  .      1.000 1    AD    I             a       12.35  0.000 19   Other IV            z       999.00

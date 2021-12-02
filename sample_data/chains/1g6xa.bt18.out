@@ -1,0 +1,5 @@
+rectype count  pdb        chain res1   aa1 res4   aa4 aa1234 ss1234 Ca1Ca4 omega2  phi2    psi2    omega3  phi3    psi3    omega4  border conf1 int1 type1 prev_name1    letter1 d_deg1 conf2 int2 type2 prev_name2    letter2 d_deg2
+table   1      1g6xa      A     2      PRO 5      CYS PDFC   CGGG   5.604  181.59  -56.32  -36.39  185.20  -66.49  -19.44  177.50  .      1.000 1    AD    I             a       13.60  0.000 19   Other IV            z       999.00
+table   2      1g6xa      A     24     ASN 27     ALA NAKA   ETTT   5.413  190.46  -74.63  -25.69  172.28  -66.92  -47.24  180.65  .      1.000 1    AD    I             a       17.19  0.000 19   Other IV            z       999.00
+table   3      1g6xa      A     25     ALA 28     GLY AKAG   TTTT   4.817  172.28  -66.92  -47.24  180.65  -74.94  -25.82  188.50  .      1.000 1    AD    I             a       14.14  0.000 19   Other IV            z       999.00
+table   4      1g6xa      A     41     LYS 44     ASN KRNN   CSSC   6.247  191.67  -79.02  -26.66  178.83  -84.09  67.74   189.10  .      0.704 9    AG    new_prev_VIII i       7.65   0.296 6    AZ    new_prev_VIII f       18.16 

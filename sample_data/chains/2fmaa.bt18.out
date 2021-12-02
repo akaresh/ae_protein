@@ -1,0 +1,4 @@
+rectype count  pdb        chain res1   aa1 res4   aa4 aa1234 ss1234 Ca1Ca4 omega2  phi2    psi2    omega3  phi3    psi3    omega4  border conf1 int1 type1 prev_name1    letter1 d_deg1 conf2 int2 type2 prev_name2    letter2 d_deg2
+table   1      2fmaa      A     140    ARG 143    VAL RMDV   CSSC   6.750  186.58  -117.57 0.64    185.45  -100.77 -23.05  185.29  .      1.000 1    AD    I             a       21.45  0.000 19   Other IV            z       999.00
+table   2      2fmaa      A     174    CYS 177    ASP CGID   ETTT   6.705  176.98  61.59   -148.05 178.90  -92.95  -21.91  191.46  .      1.000 8    pD    II'           h       12.20  0.000 19   Other IV            z       999.00
+table   3      2fmaa      A     175    GLY 178    LYS GIDK   TTTE   5.734  178.90  -92.95  -21.91  191.46  -152.99 18.52   183.04  +      0.581 6    AZ    new_prev_VIII f       19.23  0.419 1    AD    I             a       26.68 
