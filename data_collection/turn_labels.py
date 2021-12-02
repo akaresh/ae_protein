@@ -19,16 +19,16 @@ for pdb in os.listdir(arg.pdbs):
 		if pdb.endswith('.turns.json'):
 			splits = pdb.split('.')
 			pdbid = splits[0]
-			print(pdbid)
+			#print(pdbid)
 			input_pdb = os.path.join(arg.pdbs, pdbid+'.pdb')
-			print(input_pdb)
+			#print(input_pdb)
 			assert(os.path.isfile(input_pdb))
 			output_bt18 = os.path.join(arg.pdbs, pdbid+'.bt18.out')
-			print(output_bt18)
+			#print(output_bt18)
 			cmd = f"python {arg.bt18} -i {input_pdb} --dssp {arg.dssp} -noG --quiet --no-seq-format --no-comments -o {output_bt18}"
 			print(cmd)
 			os.system(cmd)
-			sys.exit()
+			#sys.exit()
 """
 Options
 1. Our project clusters beta turns, 4 residue turns
