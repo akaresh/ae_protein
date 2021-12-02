@@ -137,6 +137,8 @@ parser.add_argument('--flank', required=True, type=int,
 	metavar='<int>', help='number of flanking residues to take')
 parser.add_argument('--type', required=False, type=str,
 	default='ca', metavar='<str>', help='fragment type')
+parser.add_argument('--save', required=False, type=str,
+	default=None, metavar='<path>', help='path to save pickled dataframe')
 
 arg = parser.parse_args()
 
@@ -223,8 +225,8 @@ for file in os.listdir(arg.pdbs):
 				'turn_type' : turn['type1'],
 				'turn_symbol' : turn['symbol']
 			}
-			print(json.dumps(mat, indent=2))
-			sys.exit()
+			#print(json.dumps(mat, indent=2))
+			#sys.exit()
 			frag_set.append(frag_dic)
 
 df = pd.DataFrame(frag_set)	
@@ -232,56 +234,5 @@ print(df.head(5))
 print(df.columns)
 print(df.shape)
 
-
-"""
-
-id
-pdbid
-res-ids
-seq
-ss
-coords
-dmatrix
-type
-
-PISCES
-50 % sequence id
-~28k
-100 turn type distribution
-80/20 70/30
-80 -> training
-20 -> testing
-classes have to be balanced
-
-MSE / gt relative square difference
-
-70 / 30
-
-"""
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+if arg.save is not None:
+	df.to_pickle(arg.save, compression='xz')

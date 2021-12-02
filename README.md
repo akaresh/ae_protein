@@ -15,11 +15,12 @@
 ```
 
 * **data\_collection**
-	Contains scripts to download cif files for protein structures in dataset. 
+	Contains scripts to download pdb files for protein structures in dataset. 
 	To get started with constructing the fragment dataset, you need a 		
-	pdbid\_list.txt file from PISCES server. 
+	list of pdbs culled by the PISCES server file.
 	- pull\_pdbs.py: Downloads pdbs from PISCES output. Saves the chains 
 	specified in PISCES list.
+	- 
 * **fragment\_generators**
 	Methods to produce the structural fragment dataframes. 
 * **sample\_data**

@@ -1,5 +1,5 @@
-#!/usr/bin/python3 
-# -*- coding: future_fstrings -*-
+#!/usr/bin/env python
+
 import argparse
 import os
 import sys
@@ -16,7 +16,7 @@ arg = parser.parse_args()
 
 for pdb in os.listdir(arg.pdbs):
 	if os.path.isfile(os.path.join(arg.pdbs, pdb)):
-		if pdb.endswith('.turns.json'):
+		if pdb.endswith('.dssp'):
 			splits = pdb.split('.')
 			pdbid = splits[0]
 			#print(pdbid)
@@ -25,7 +25,12 @@ for pdb in os.listdir(arg.pdbs):
 			assert(os.path.isfile(input_pdb))
 			output_bt18 = os.path.join(arg.pdbs, pdbid+'.bt18.out')
 			#print(output_bt18)
-			cmd = f"python {arg.bt18} -i {input_pdb} --dssp {arg.dssp} -noG --quiet --no-seq-format --no-comments -o {output_bt18}"
+			cmd = "python {bt18} -i {input} --dssp {dssp} -noG --quiet\
+			--no-seq-format --no-comments -o {output}".format(
+				bt18=arg.bt18,
+				dssp=arg.dssp,
+				input=input_pdb,
+				output=output_bt18)
 			print(cmd)
 			os.system(cmd)
 			#sys.exit()
