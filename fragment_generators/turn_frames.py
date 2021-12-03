@@ -2,13 +2,19 @@
 
 import argparse
 import json
+import lzma
 import os
+import pickle
 import sys
 
 import Bio.PDB as bpdb
 import numpy as np
 import pandas as pd
 from scipy.spatial.distance import cdist
+
+class TurnFrame(object):
+	def __init__(self, df):
+		self.df = df
 
 alphabet = [
 	"G",
@@ -145,6 +151,12 @@ arg = parser.parse_args()
 assert(arg.type == 'ca' or arg.type == 'bb' or arg.type == 'bbcen'
 	   or arg.type == 'bbsc')
 
+if arg.save is not None:
+	if not arg.save.endswith('xz'):
+		print('save location needs to end in xz if we want to compress')
+		print(f'arg.save : {arg.save}')
+		sys.exit()
+
 frag_set = []
 for file in os.listdir(arg.pdbs):
 	if len(frag_set) >= 1000: break
@@ -173,10 +185,7 @@ for file in os.listdir(arg.pdbs):
 		
 		# read in pdb structures with PDBParser
 		parser = bpdb.PDBParser()
-		#try:
 		structure = parser.get_structure(pdbid, input_pdb)
-		#except:
-		#	continue
 			
 		if chainid not in structure[0]:
 			chainid = chainid.lower()
@@ -225,8 +234,6 @@ for file in os.listdir(arg.pdbs):
 				'turn_type' : turn['type1'],
 				'turn_symbol' : turn['symbol']
 			}
-			#print(json.dumps(mat, indent=2))
-			#sys.exit()
 			frag_set.append(frag_dic)
 
 df = pd.DataFrame(frag_set)	
@@ -234,5 +241,11 @@ print(df.head(5))
 print(df.columns)
 print(df.shape)
 
+new_turn_frame = TurnFrame(df)
+new_turn_frame.flank = arg.flank
+new_turn_frame.turn_type = arg.type
+new_turn_frame.split = None
+
 if arg.save is not None:
-	df.to_pickle(arg.save, compression='xz')
+	with lzma.open(arg.save, 'wb') as fp:
+		pickle.dump(new_turn_frame, fp)
