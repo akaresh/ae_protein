@@ -11,10 +11,11 @@ import Bio.PDB as bpdb
 import numpy as np
 import pandas as pd
 from scipy.spatial.distance import cdist
+from turns_data_class import TurnFrame
 
-class TurnFrame(object):
-	def __init__(self, df):
-		self.df = df
+# class TurnFrame(object):
+# 	def __init__(self, df):
+# 		self.df = df
 
 alphabet = [
 	"G",
