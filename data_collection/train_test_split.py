@@ -4,19 +4,19 @@ import argparse
 import json
 import lzma
 import os
-import pandas as pd
 import pickle
 import sys
 
-class TurnFrame(object):
-	def __init__(self, df):
-		self.df = df
+import pandas as pd
+from turns_data_class import TurnFrame
 
 parser = argparse.ArgumentParser(description='creating turn labels')
 parser.add_argument('--frame', required=True, type=str,
 	metavar='<path>', help='path to dataframe to split')
-parser.add_argument('--out', required=True, type=str,
-	metavar='<path>', help='path and base filename to save train/test frames')
+parser.add_argument('--train', required=True, type=str,
+	metavar='<path>', help='path and base filename to save train frame')
+parser.add_argument('--test', required=True, type=str,
+	metavar='<path>', help='path and basr filename to save test frame')
 parser.add_argument('--flank', required=True, type=int,
 	metavar='<int>', help='number of flanking residues to take')
 parser.add_argument('--type', required=False, type=str,
@@ -78,9 +78,16 @@ test_data.flank = arg.flank
 test_data.turn_type = arg.type
 test_data.split = 'test'
 
-train_save = arg.out+'.train.pickle.xz'
-test_save  = arg.out+'.test.pickle.xz'
+save_dir = arg.train.split('/')
+save_dir = '/'.join(save_dir[:-1])
+assert(os.path.isdir(save_dir))
 
+save_dir = arg.test.split('/')
+save_dir = '/'.join(save_dir[:-1])
+assert(os.path.isdir(save_dir))
+
+train_save = f"{arg.train}_train_flank{arg.flank}_type{arg.type}.pickle.xz"
+test_save  = f"{arg.test}_test_flank{arg.flank}_type{arg.type}.pickle.xz"
 with lzma.open(train_save, 'wb') as fp:
 	pickle.dump(train_data, fp)
 

@@ -8,125 +8,13 @@ import pickle
 import sys
 
 import Bio.PDB as bpdb
+from fragment_generators import ca_fragment, bb_fragment, bbcen_fragment
+from fragment_generators import bbsc_fragment
+from fragment_generators import alphabet, aa_dict, aa_sc_atoms
 import numpy as np
 import pandas as pd
 from scipy.spatial.distance import cdist
 from turns_data_class import TurnFrame
-
-# class TurnFrame(object):
-# 	def __init__(self, df):
-# 		self.df = df
-
-alphabet = [
-	"G",
-	"P",
-	"D",
-	"E",
-	"K",
-	"R",
-	"H",
-	"S",
-	"T",
-	"N",
-	"Q",
-	"A",
-	"M",
-	"Y",
-	"W",
-	"V",
-	"I",
-	"L",
-	"F",
-	"C"
-]
-
-aa_dict = {
-	"ala" : "A", 
-	"arg" : "R",
-	"asn" : "N",
-	"asp" : "D",
-	"cys" : "C",
-	"gln" : "Q",
-	"glu" : "E",
-	"gly" : "G",
-	"his" : "H",
-	"ile" : "I",
-	"leu" : "L",
-	"lys" : "K",
-	"met" : "M",
-	"phe" : "F",
-	"pro" : "P",
-	"ser" : "S",
-	"thr" : "T",
-	"trp" : "W",
-	"tyr" : "Y",
-	"val" : "V"
-}
-
-aa_sc_atoms = {
-	"A" : ["CB"], 
-	"R" : ["CB", "CG", "CD", "NE", "CZ", "NH1", "NH2"],
-	"N" : ["CB", "CG", "OD1", "ND2"],
-	"D" : ["CB", "CG", "OD1", "OD2"],
-	"C" : ["CB", "SG"],
-	"Q" : ["CB", "CG", "CD", "OE1", "NE2"],
-	"E" : ["CB", "CG", "CD", "OE1", "OE2"],
-	"G" : ["CA"],
-	"H" : ["CB", "CG", "ND1", "CD2", "CE1", "NE2"],
-	"I" : ["CB", "CG1", "CG2", "CD1"],
-	"L" : ["CB", "CG", "CD1", "CD2"],
-	"K" : ["CB", "CG", "CD", "CE", "NZ"],
-	"M" : ["CB", "CG", "SD", "CE"],
-	"F" : ["CB", "CG", "CD1", "CD2", "CE1", "CE2", "CZ"],
-	"P" : ["CB", "CG", "CD", "N", "CA"],
-	"S" : ["CB", "OG"],
-	"T" : ["CB", "OG1", "CG2"],
-	"W" : ["CB", "CG", "CD1", "CD2", "NE1", "CE2", "CE3", "CZ2", "CZ3", "CH2"],
-	"Y" : ["CB", "CG", "CD1", "CD2", "CE1", "CE2", "CZ", "OH"],
-	"V" : ["CB", "CG1", "CG2"]
-}
-
-def ca_fragment(struct, chain, ids, dssp):
-	pos = []
-	
-	for i in ids:
-		if i not in struct[0][chain]: return None
-		if "CA" not in struct[0][chain][i]: return None
-		
-		residue = struct[0][chain][i]
-		if residue.get_resname().lower() not in aa_dict: return None
-		
-		grp = residue["CA"].get_coord().tolist()
-		pos.append(grp)
-	
-	return pos
-
-
-def bb_fragment(struct, chain, ids, dssp):
-	bbatms = ['N', 'CA', 'C', 'O']
-	pos = []
-	
-	for i in ids:
-		if i not in struct[0][chain]: return None
-		
-		residue = struct[0][chain][i]
-		if residue.get_resname().lower() not in aa_dict: return None
-		
-		for bb in bbatms:
-			if bb not in struct[0][chain][i]: return None
-			
-			grp = residue[bb].get_coord().tolist()
-			pos.append(grp)
-	
-	return pos
-
-
-def bbcen_fragment(struct, chain, ids, dssp):
-	pass
-
-
-def bbsc_fragment(struct, chain, ids, dssp):
-	pass
 
 
 def get_frag_xyz(struct, chain, ids, dssp, frag_type):
@@ -144,23 +32,17 @@ parser.add_argument('--flank', required=True, type=int,
 	metavar='<int>', help='number of flanking residues to take')
 parser.add_argument('--type', required=False, type=str,
 	default='ca', metavar='<str>', help='fragment type')
-parser.add_argument('--save', required=False, type=str,
-	default=None, metavar='<path>', help='path to save pickled dataframe')
+parser.add_argument('--save', required=True, type=str,
+	default=None, metavar='<path>',
+	help='folder and base name for turn fragment data set, dont add metadata')
 
 arg = parser.parse_args()
 
 assert(arg.type == 'ca' or arg.type == 'bb' or arg.type == 'bbcen'
 	   or arg.type == 'bbsc')
 
-if arg.save is not None:
-	if not arg.save.endswith('xz'):
-		print('save location needs to end in xz if we want to compress')
-		print(f'arg.save : {arg.save}')
-		sys.exit()
-
 frag_set = []
 for file in os.listdir(arg.pdbs):
-	if len(frag_set) >= 1000: break
 	if file.endswith('.turns.json'):
 		# collect turns.json and dssp.json files for this structure
 		info = file.split('.')
@@ -247,6 +129,11 @@ new_turn_frame.flank = arg.flank
 new_turn_frame.turn_type = arg.type
 new_turn_frame.split = None
 
-if arg.save is not None:
-	with lzma.open(arg.save, 'wb') as fp:
-		pickle.dump(new_turn_frame, fp)
+save_dir = arg.save.split('/')
+save_dir = '/'.join(save_dir[:-1])
+assert(os.path.isdir(save_dir))
+
+save_name = f"{arg.save}_full_flank{arg.flank}_type{arg.type}.pickle.xz"
+print(save_name)
+with lzma.open(save_name, 'wb') as fp:
+	pickle.dump(new_turn_frame, fp)

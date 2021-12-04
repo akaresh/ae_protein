@@ -74,10 +74,10 @@ for i, row in enumerate(entries):
 	if not os.path.isfile(f'{chain_pdbs}/{pdbid}{chainid.lower()}.pdb'):
 		parser = bpdb.PDBParser()
 		filep = full_pdbs+'/'+pdbid+'.pdb'
-		try:
-			structure = parser.get_structure(pdbid+chainid,filep)
-		except:
-			continue
+		#try:
+		structure = parser.get_structure(pdbid+chainid,filep)
+		#except:
+		#	continue
 		
 		io = bpdb.PDBIO()
 		io.set_structure(structure)

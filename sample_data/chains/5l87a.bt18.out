@@ -1,5 +1,0 @@
-rectype count  pdb        chain res1   aa1 res4   aa4 aa1234 ss1234 Ca1Ca4 omega2  phi2    psi2    omega3  phi3    psi3    omega4  border conf1 int1 type1 prev_name1    letter1 d_deg1 conf2 int2 type2 prev_name2    letter2 d_deg2
-table   1      5l87a      A     20     ASP 23     VAL DSRV   STTT   5.255  185.28  -62.08  -28.19  177.72  -80.24  -29.67  184.45  .      1.000 1    AD    I             a       8.81   0.000 19   Other IV            z       999.00
-table   2      5l87a      A     21     SER 24     ARG SRVR   TTTT   5.581  177.72  -80.24  -29.67  184.45  -82.30  -41.63  196.34  .      1.000 1    AD    I             a       13.98  0.000 19   Other IV            z       999.00
-table   3      5l87a      A     22     ARG 25     ARG RVRR   TTTT   6.941  184.45  -82.30  -41.63  196.34  -59.28  -33.61  185.98  .      1.000 1    AD    I             a       19.20  0.000 19   Other IV            z       999.00
-table   4      5l87a      A     23     VAL 26     THR VRRT   TTTS   5.501  196.34  -59.28  -33.61  185.98  -89.26  -5.68   185.82  .      1.000 1    AD    I             a       8.81   0.000 19   Other IV            z       999.00

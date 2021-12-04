@@ -1,2 +1,0 @@
-rectype count  pdb        chain res1   aa1 res4   aa4 aa1234 ss1234 Ca1Ca4 omega2  phi2    psi2    omega3  phi3    psi3    omega4  border conf1 int1 type1 prev_name1    letter1 d_deg1 conf2 int2 type2 prev_name2    letter2 d_deg2
-table   1      6q00b      B     50     ASN 53     GLU NDWE   TTTC   5.764  172.71  59.16   30.39   179.32  62.40   26.53   179.98  .      1.000 4    ad    I'            d       9.94   0.000 19   Other IV            z       999.00
