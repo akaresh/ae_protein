@@ -1,5 +1,10 @@
 #!/usr/bin/env python
 
+import sys
+
+from molmass import Formula
+import pandas as pd
+
 alphabet = [
 	"G",
 	"P",
@@ -107,9 +112,94 @@ def bb_fragment(struct, chain, ids, dssp):
 	return pos
 
 
+def res_cen(dict_positions):
+	#print(dict_positions)
+	total_mass = 0
+	mx = 0
+	my = 0
+	mz = 0
+	for keys, values in dict_positions.items():
+		total_mass += (Formula(values[-1]).mass)
+		mx += ((Formula(values[-1]).mass)*values[0])
+		my += ((Formula(values[-1]).mass)*values[1])
+		mz += ((Formula(values[-1]).mass)*values[2])
+	return [mx/total_mass, my/total_mass, mz/total_mass]
+
+
 def bbcen_fragment(struct, chain, ids, dssp):
-	pass
+	bbatms = ["N", "CA", "C", "O"]
+	pos = []
+	
+	for i in ids:
+		if i not in struct[0][chain]: return None
+		
+		residue = struct[0][chain][i]
+		if residue.get_resname().lower() not in aa_dict: return None
+		
+		for bb in bbatms:
+			if bb not in struct[0][chain][i]: return None
+			
+			grp = residue[bb].get_coord().tolist()
+			pos.append(grp)
+		
+		resname = aa_dict[residue.get_resname().lower()]
+		if resname == "G":
+			pos.append(struct[0][chain][i]["CA"].get_coord().tolist())
+			continue
+		
+		sc_atms_check = {k:0 for k in aa_sc_atoms[resname]}
+		side_coords = dict()
+		for atm in residue.get_atoms():
+			if resname != "P" and resname != "G":
+				if atm.get_id() in bbatms: continue
+			
+			if atm.get_id()[0] == 'H': continue
+			if atm.get_id()[0] == 'D': continue
+			
+			if atm.get_id() not in sc_atms_check: continue
+			assert(sc_atms_check[atm.get_id()] == 0)
+			assert(atm.get_id() not in side_coords)
+			
+			side_coords[atm.get_id()] = [
+				atm.get_coord()[0],
+				atm.get_coord()[1],
+				atm.get_coord()[2],
+				atm.element]
+			sc_atms_check[atm.get_id()] += 1
+		
+		for k,v in sc_atms_check.items():
+			if v != 1: return None
+		
+		ressc_centroid = res_cen(side_coords)
+		pos.append(ressc_centroid)
+	return pos
 
 
 def bbsc_fragment(struct, chain, ids, dssp):
 	pass
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

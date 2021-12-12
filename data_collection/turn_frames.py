@@ -93,8 +93,9 @@ for file in os.listdir(arg.pdbs):
 			if skip: continue
 			
 			xyz = get_frag_xyz(structure, chainid, frag_ids, ssdic, arg.type)
+			print(xyz)
 			if xyz is None: continue
-			
+			print(xyz)
 			seq    = ''
 			secstr = ''
 			for fi in frag_ids:

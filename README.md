@@ -81,6 +81,40 @@ The repository has a Makefile to run style-checks, unit/functional tests, and ma
 
 ## Architecture Options ##
 1. efficientnet
+
+## Notes ##
+- Centroid fragment frames and splits
+- frame summaries
+- Initial learning
+- Fully convolutional
+	- 1 conv layer ea 8 latent batchnorm
+	- 1 conv layer ea 8 latent no batchnorm
+	- 5 conv layers 
+	- residual/skip connections
+	- batchnorm or not 
+	- 8, 16, 32 latent
+	- 64, 128 or not intervening FC
+- 5 conv, no skip, no batchnorm, no midFC, 8 lat
+- 5 conv, skip, no batchnorm, no midFC, 8 lat,
+- 5 conv, no skip, batchnorm, 
+
+skipp connections
+- 5 conv, no skip, 8, no batchnorm
+- 5 conv, skip, 8, no batchnorm
+midFC
+- 5 conv, skip, 128->8, batchnorm
+- 5 conv, skip, 8, batchnorm 
+laten size
+- 5 conv, skip, 2, batchnorm
+- 5 conv, skip, 8, batchnorm
+- 5 conv, skip, 32, batchnorm
+- 5 conv, skip, 128, batchnorm
+
+8 models
+
+
+
+  
  
 
 
